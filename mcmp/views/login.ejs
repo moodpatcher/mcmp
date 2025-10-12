@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/main.css">
+    <link rel="stylesheet" href="/login.css">
+</head>
+<body>
+    <div id="content">
+        <div id="title">
+            <center>Log in</center>
+        </div>
+
+        <center>👤 User:</center>
+        <div id="username_div">
+            <input id="username" type="text">
+        </div> <br>
+
+        <center>🔐 Key:</center>
+        <!-- Drag and drop file upload area -->
+        <div id="file_drop_wrapper">
+            <div role="button" class="drop-zone" id="drop_zone" tabindex="0" aria-describedby="drop_help">
+                <div id="drop_text">Drop a file here or click to select</div>
+            </div>
+            <input id="file_input" type="file" style="display:none" />
+            <div id="drop_help" style="display:none">You can drag and drop a single file here, or press Enter/Space to open the file selector.</div>
+        </div>
+
+        <div id="otp_div">
+            <center>🔒 2FA:</center>
+            <input id="otp" type="text">
+        </div>
+
+        <div id="login_button" class="button">
+            <center>Log in</center>
+        </div>
+
+        <div id="login_error">
+            <b>Infó:</b> Sikertelen bejelentkezés.
+        </div>
+
+        <div id="login_info">
+            <b>Info:</b> Key size limit is 5 KBs.
+        </div>
+
+        <script>
+            document.getElementById("login_button").onclick = async () => {
+                let login_value = document.getElementById("username").value;
+                let otp_value = document.getElementById("otp").value;
+
+                if (login_value.length < 3) { loginError("Username is too short."); return; }
+                if (login_value.length > 12) { loginError("Username is too long."); return; }
+                if (login_value.includes(" ")) { loginError("Usernames cannot contain spaces."); return; }
+
+                // Build payload
+                const payload = { login: login_value, otp: otp_value == "" ? null : otp_value };
+
+                // If there's a selected file, read it as base64 and include in JSON
+                const sel = (window.dropZone && window.dropZone._selectedFile) || document.getElementById('file_input').files[0];
+                if (sel) {
+                    try {
+                        const fileBase64 = await new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onerror = () => reject(reader.error);
+                            reader.onload = () => resolve(reader.result.split(',')[1]); // data:<mimetype>;base64,<data>
+                            reader.readAsDataURL(sel);
+                        });
+                        payload.file_name = sel.name;
+                        payload.file_mime = sel.type || null;
+                        payload.file_base64 = fileBase64;
+                    } catch (e) {
+                        console.error('Failed to read file', e);
+                        loginError('Failed to read selected file');
+                        return;
+                    }
+                }
+
+                fetch("/loginmanager", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                .then(response => response.json())
+                .then(responseData => {
+                    if (responseData.status == "error") {
+                        loginError("Login failed! " + (responseData.message || ''));
+                    } else if (responseData.status == "2fa") {
+                        document.getElementById("username").readOnly = true;
+                        document.getElementById("otp_div").style.display = "block";
+                    } else if (responseData.status == "login_success") {
+                        parent.redirect("home");
+                    } else if (responseData.status == 'ok') {
+                        // server acknowledged upload but didn't perform login; show message
+                        dropText.textContent = responseData.message || 'OK';
+                    }
+                })
+                .catch(error => { console.error(error); loginError('Network error'); });
+            }
+
+            function loginError(message) {
+                let login_error = document.getElementById("login_error");
+                login_error.style.display = "block";
+                login_error.innerHTML = "<b>Hiba: </b>" + message;
+            }
+
+            // Drag & Drop file handling
+            (function() {
+                const dropZone = document.getElementById('drop_zone');
+                const fileInput = document.getElementById('file_input');
+                const dropText = document.getElementById('drop_text');
+
+                // Click/open file dialog
+                dropZone.addEventListener('click', () => fileInput.click());
+
+                // Keyboard accessibility (Enter/Space)
+                dropZone.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        fileInput.click();
+                    }
+                });
+
+                // File selected via dialog
+                fileInput.addEventListener('change', (e) => {
+                    handleFiles(e.target.files);
+                });
+
+                // Drag events
+                ['dragenter', 'dragover'].forEach(evt => {
+                    dropZone.addEventListener(evt, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropZone.classList.add('drop-zone--over');
+                    });
+                });
+
+                ['dragleave', 'dragend', 'drop'].forEach(evt => {
+                    dropZone.addEventListener(evt, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropZone.classList.remove('drop-zone--over');
+                    });
+                });
+
+                dropZone.addEventListener('drop', (e) => {
+                    const dt = e.dataTransfer;
+                    if (!dt) return;
+                    const files = dt.files;
+                    handleFiles(files);
+                });
+
+                function handleFiles(files) {
+                    if (!files || files.length === 0) { dropText.textContent = 'No file selected'; return; }
+                    const file = files[0];
+                    // Keep the selected file in memory for inclusion during /loginmanager POST
+                    window.dropZone = window.dropZone || {};
+                    window.dropZone._selectedFile = file;
+                    dropZone._selectedFile = file;
+                    dropText.textContent = `Selected: ${file.name}`;
+                }
+            })();
+        </script>
+    </div>
+</body>
+</html>

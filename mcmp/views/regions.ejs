@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/regions.css">
+</head>
+<body>
+    <main>
+        <h1>Regions</h1>
+        <div id="regions-container">Loading regions...</div>
+
+        <div id="refresh" onclick="window.location.reload()">↻ Refresh</div>
+    </main>
+
+    <script>
+    async function loadRegions() {
+        const res = await fetch('/api/regions');
+        if (!res.ok) { document.getElementById('regions-container').innerText = 'Error loading regions'; return; }
+        const data = await res.json();
+        if (data.status !== 'ok') { document.getElementById('regions-container').innerText = 'Error: ' + (data.message || JSON.stringify(data)); return; }
+
+        const container = document.getElementById('regions-container');
+        container.innerHTML = '';
+        const list = document.createElement('ul');
+
+        const regions = data.regions || {};
+        const selected = data.selected || null;
+
+        for (const [name, info] of Object.entries(regions)) {
+            const li = document.createElement('li');
+            li.style.marginBottom = '8px';
+            const title = document.createElement('strong');
+            title.innerText = name + ' '; 
+            li.appendChild(title);
+
+            const meta = document.createElement('span');
+            meta.innerText = `(${info.ip} user=${info.user} key=${info.key}) `;
+            li.appendChild(meta);
+
+            const status = document.createElement('span');
+            status.innerText = info.online ? '🟢 online' : '🔴 offline';
+            status.style.marginRight = '8px';
+            li.appendChild(status);
+
+            const btn = document.createElement('button');
+            btn.innerText = (selected === name) ? 'Selected' : 'Select';
+            btn.disabled = (selected === name);
+            btn.onclick = async () => {
+                btn.disabled = true;
+                btn.innerText = 'Selecting...';
+                const r = await fetch('/api/regions/select', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ region: name }) });
+                const jr = await r.json();
+                if (jr.status === 'ok') {
+                    setTimeout(() => { 
+                        if (window.parent && window.parent !== window) {
+                            window.parent.location.reload();
+                        } else {
+                            window.location.reload();
+                        }
+                    }, 1000);
+                    return;
+                } else {
+                    alert('Error selecting region: ' + (jr.message || JSON.stringify(jr)));
+                    btn.disabled = false;
+                    btn.innerText = 'Select';
+                }
+            };
+            li.appendChild(btn);
+
+            list.appendChild(li);
+        }
+
+        container.appendChild(list);
+    }
+
+    loadRegions();
+    </script>
+</body>
+</html>

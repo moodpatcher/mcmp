@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCMP - Power Saving</title>
+    <link rel="stylesheet" href="power_saving.css">
+</head>
+<body>
+    <main>
+        <h1>Power Saving Schedules</h1>
+        
+        <!-- Create Schedule Form -->
+        <div class="create-section">
+            <h2>Create New Schedule</h2>
+            <form id="create-schedule-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="schedule-name">Schedule Name:</label>
+                        <input type="text" id="schedule-name" name="name" required 
+                               placeholder="e.g., Night Shutdown, Weekend Stop">
+                    </div>
+                    <div class="form-group">
+                        <label for="schedule-action">Action:</label>
+                        <select id="schedule-action" name="action">
+                            <option value="stop">Stop Containers</option>
+                            <option value="start">Start Containers</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="schedule-hour">Hour (0-23):</label>
+                        <input type="number" id="schedule-hour" name="hour" required 
+                               min="0" max="23" value="22">
+                    </div>
+                    <div class="form-group">
+                        <label for="schedule-minute">Minute (0-59):</label>
+                        <input type="number" id="schedule-minute" name="minute" required 
+                               min="0" max="59" value="0">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="schedule-day">Day of Month:</label>
+                        <select id="schedule-day" name="day">
+                            <option value="*">Every Day</option>
+                            <option value="1">1st</option>
+                            <option value="15">15th</option>
+                            <option value="*/2">Every 2 Days</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="schedule-weekday">Day of Week:</label>
+                        <select id="schedule-weekday" name="weekday">
+                            <option value="*">Every Day</option>
+                            <option value="1">Monday</option>
+                            <option value="2">Tuesday</option>
+                            <option value="3">Wednesday</option>
+                            <option value="4">Thursday</option>
+                            <option value="5">Friday</option>
+                            <option value="6">Saturday</option>
+                            <option value="0">Sunday</option>
+                            <option value="1-5">Weekdays</option>
+                            <option value="0,6">Weekends</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="schedule-containers">Containers to Schedule:</label>
+                    <div id="containers-list" class="containers-list">
+                        <div class="loading">Loading containers...</div>
+                    </div>
+                </div>
+
+                <button type="submit" id="create-btn">Create Schedule</button>
+            </form>
+        </div>
+
+        <!-- Schedules List -->
+        <div class="schedules-section">
+            <h2>Existing Schedules</h2>
+            <div id="schedules-container">Loading schedules...</div>
+        </div>
+    </main>
+
+    <script>
+        let availableContainers = [];
+
+        // Load available containers
+        async function loadContainers() {
+            try {
+                const res = await fetch('/api/containers');
+                
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        document.getElementById('containers-list').innerHTML = `<div class="error">Please log in and select a region first</div>`;
+                        return;
+                    }
+                    document.getElementById('containers-list').innerHTML = `<div class="error">HTTP Error: ${res.status} ${res.statusText}</div>`;
+                    return;
+                }
+                
+                const data = await res.json();
+                
+                if (data.status === 'ok') {
+                    availableContainers = data.containers;
+                    renderContainersList();
+                } else {
+                    document.getElementById('containers-list').innerHTML = `<div class="error">API Error: ${data.message || 'Unknown error'}</div>`;
+                }
+            } catch (error) {
+                console.error('Error loading containers:', error);
+                document.getElementById('containers-list').innerHTML = `<div class="error">Network error: ${error.message}</div>`;
+            }
+        }
+
+        function renderContainersList() {
+            const containersList = document.getElementById('containers-list');
+            containersList.innerHTML = '';
+
+            if (availableContainers.length === 0) {
+                containersList.innerHTML = '<div class="no-containers">No containers found</div>';
+                return;
+            }
+
+            availableContainers.forEach(container => {
+                const containerDiv = document.createElement('div');
+                containerDiv.className = 'container-item';
+                containerDiv.innerHTML = `
+                    <label>
+                        <input type="checkbox" name="containers" value="${container.names}">
+                        <span class="container-name">${container.names}</span>
+                        <span class="container-image">(${container.image})</span>
+                        <span class="container-status ${container.status.includes('Up') ? 'running' : 'stopped'}">${container.status.includes('Up') ? 'Running' : 'Stopped'}</span>
+                    </label>
+                `;
+                containersList.appendChild(containerDiv);
+            });
+        }
+
+        async function loadSchedules() {
+            try {
+                const res = await fetch('/api/power-saving');
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        document.getElementById('schedules-container').innerHTML = `<div class="error">Please log in and select a region first</div>`;
+                        return;
+                    }
+                    document.getElementById('schedules-container').innerHTML = `<div class="error">HTTP Error: ${res.status} ${res.statusText}</div>`;
+                    return;
+                }
+                
+                const data = await res.json();
+                if (data.status !== 'ok') {
+                    document.getElementById('schedules-container').innerHTML = `<div class="error">API Error: ${data.message || 'Unknown error'}</div>`;
+                    return;
+                }
+
+                const container = document.getElementById('schedules-container');
+                container.innerHTML = '';
+
+                if (data.schedules.length === 0) {
+                    container.innerHTML = '<div class="no-schedules">No schedules found</div>';
+                    return;
+                }
+
+                const table = document.createElement('table');
+                table.className = 'schedules-table';
+                
+                // Table header
+                const thead = document.createElement('thead');
+                thead.innerHTML = `
+                    <tr>
+                        <th>Name</th>
+                        <th>Time</th>
+                        <th>Schedule</th>
+                        <th>Action</th>
+                        <th>Containers</th>
+                        <th>Actions</th>
+                    </tr>
+                `;
+                table.appendChild(thead);
+
+                // Table body
+                const tbody = document.createElement('tbody');
+                data.schedules.forEach(schedule => {
+                    const row = document.createElement('tr');
+                    
+                    // Format time
+                    const timeStr = `${schedule.hour.toString().padStart(2, '0')}:${schedule.minute.toString().padStart(2, '0')}`;
+                    
+                    // Format schedule
+                    const scheduleStr = `${schedule.day}/${schedule.month} (${schedule.weekday})`;
+                    
+                    row.innerHTML = `
+                        <td class="schedule-name">${schedule.name}</td>
+                        <td class="schedule-time">${timeStr}</td>
+                        <td class="schedule-cron">${scheduleStr}</td>
+                        <td class="schedule-action ${schedule.action}">${schedule.action}</td>
+                        <td class="schedule-containers">${schedule.containers.join(', ')}</td>
+                        <td class="schedule-actions">
+                            <button class="btn btn-delete" onclick="deleteSchedule('${schedule.id}')">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                table.appendChild(tbody);
+                container.appendChild(table);
+
+            } catch (error) {
+                document.getElementById('schedules-container').innerHTML = '<div class="error">Network error: ' + error.message + '</div>';
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('create-schedule-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const name = formData.get('name');
+            const action = formData.get('action');
+            const hour = formData.get('hour');
+            const minute = formData.get('minute');
+            const day = formData.get('day');
+            const weekday = formData.get('weekday');
+            
+            // Get selected containers
+            const selectedContainers = Array.from(document.querySelectorAll('input[name="containers"]:checked'))
+                .map(checkbox => checkbox.value);
+            
+            if (selectedContainers.length === 0) {
+                showMessage('Please select at least one container', 'error');
+                return;
+            }
+            
+            const createBtn = document.getElementById('create-btn');
+            const originalText = createBtn.textContent;
+            
+            try {
+                createBtn.disabled = true;
+                createBtn.textContent = 'Creating...';
+                
+                const payload = { 
+                    name, 
+                    action, 
+                    hour: parseInt(hour), 
+                    minute: parseInt(minute), 
+                    day, 
+                    weekday, 
+                    containers: selectedContainers 
+                };
+                
+                const res = await fetch('/api/power-saving', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        showMessage('Please log in and select a region first', 'error');
+                        return;
+                    }
+                    showMessage('HTTP Error: ' + res.status + ' ' + res.statusText, 'error');
+                    return;
+                }
+                
+                const data = await res.json();
+                
+                if (data.status === 'ok') {
+                    // Clear form and reload schedules
+                    e.target.reset();
+                    document.getElementById('schedule-hour').value = '22';
+                    document.getElementById('schedule-minute').value = '0';
+                    await loadSchedules();
+                    showMessage('Schedule created successfully!', 'success');
+                } else {
+                    showMessage('Error creating schedule: ' + (data.message || 'Unknown error'), 'error');
+                }
+                
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            } finally {
+                createBtn.disabled = false;
+                createBtn.textContent = originalText;
+            }
+        });
+
+        // Delete schedule
+        async function deleteSchedule(id) {
+            if (!confirm('Are you sure you want to delete this schedule?')) {
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/power-saving/${id}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        showMessage('Please log in and select a region first', 'error');
+                        return;
+                    }
+                    showMessage('HTTP Error: ' + res.status + ' ' + res.statusText, 'error');
+                    return;
+                }
+                
+                const data = await res.json();
+                
+                if (data.status === 'ok') {
+                    await loadSchedules();
+                    showMessage('Schedule deleted successfully!', 'success');
+                } else {
+                    showMessage('Error deleting schedule: ' + (data.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            }
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = message;
+            
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+
+        // Load data on page load
+        loadContainers();
+        loadSchedules();
+    </script>
+</body>
+</html>

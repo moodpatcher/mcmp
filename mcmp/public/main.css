@@ -1,0 +1,227 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    overflow-y: auto;
+    /* text-shadow: 1px 1px rgba(0, 0, 0, 0.8); */
+}
+
+#navbar {
+    border-top: 2px solid rgba(255, 255, 255, 0.2);
+
+    margin: auto;
+
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    height: fit-content;
+    background-color: rgba(16, 16, 16, 1);
+    backdrop-filter: blur(28px);
+    color: rgba(255, 255, 255, 0.8);
+    padding-left: 4px;
+    padding-right: 4px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    font-size: 30px;
+
+    /* border-radius: 4px; */
+
+    position: sticky;
+}
+
+#navbar_first {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+#userbar {
+    position: sticky;
+    z-index: 1;
+    top: 0px;
+    height: fit-content;
+    background-color: rgb(20, 20, 20);
+    backdrop-filter: blur(28px);
+    color: rgba(255, 255, 255, 0.8);
+    padding-left: 4px;
+    padding-right: 4px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    font-size: 14px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+
+    text-align: right;
+
+    display: none;
+}
+
+.navbar-logo {
+    float: right;
+    width: auto;
+    height: 24px;
+
+    margin-top: 10px;
+}
+
+.navbar-menu {
+    display: block;
+    float: left;
+    width: auto;
+    height: 24px;
+
+    margin-top: 8px;
+}
+
+.navbar-menu:hover {
+    cursor: pointer;
+}
+
+#server_name {
+    margin-top: 4px;
+    margin-left: 4px;
+    display: inline-block;
+    
+    height: 34px;
+    width: auto;
+
+    opacity: 0.8;
+}
+
+.navbar-player-stats {
+    float: right;
+    width: auto;
+    height: 24px;
+
+    margin-top: 10px;
+    margin-right: 8px;
+
+    font-size: 18px;
+    font-weight: bold;
+
+    z-index: 810000;
+}
+
+#footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    padding-top: 10px;
+    padding-bottom: 8px;
+    background-color: rgba(0, 0, 0, 1);
+    color: #FFF;
+    z-index: 1;
+}
+
+#sidebar {
+    position: absolute;
+    width: 200px;
+    height: 100%;
+    z-index: 2;
+    background-color: rgba(16, 16, 16, 0.1);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    display: none;
+    border-right: 2px solid rgba(0, 0, 0, 0.8);
+}
+
+.sidebar_entry {
+    background-color: rgba(16, 16, 16, 0.6);
+    border-radius: 4px;
+
+    margin: auto;
+    width: 94%;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 100%;
+    margin-top: 4px;
+    margin-bottom: 4px;
+    text-align: left;
+
+    padding: 2px;
+    font-weight: bold;
+}
+
+.sidebar_entry:hover {
+    opacity: 0.8;
+    cursor: pointer;
+}
+
+input[type=text] {
+    outline: none;
+    border: none;
+    background-color: rgba(30, 30, 30, 0.8);
+    font-size: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.button {
+
+}
+
+.button:hover {
+    opacity: 0.8;
+    cursor: pointer;
+}
+
+.second-row {position: absolute; top: 80px; left: 0; right: 0; bottom: 0; }
+.second-row iframe {display: block; width: 100%; height: 94%; border: none; background-color: rgba(10, 10, 10, 1) }
+
+body {
+    background-color: rgba(10, 10, 10, 1);
+}
+
+/* Telefon */
+@media (max-width: 600px) {
+    #body {
+        background-color: rgba(32, 32, 32, 1);
+    }
+
+    #navbar {
+        font-size: 38px;
+    }
+        
+    #server_name {
+        margin-top: 8px;
+        margin-left: 4px;
+        
+        height: 34px;
+        width: auto;
+    }
+
+    .navbar-logo {
+        display: none;
+    }
+
+    .navbar-menu {
+        width: auto;
+        height: 38px;
+
+        margin-top: 6px;
+    }
+
+    .server_name {
+        margin-left: 4px;
+    }
+
+    .navbar-player-stats {
+        display: none;
+    }
+
+    #sidebar {
+        width: 60%;
+    }
+
+    .second-row {position: absolute; top: 12%; left: 0; right: 0; bottom: 0; }
+    .second-row iframe {display: block; width: 100%; height: 90%; border: none; background-color: rgba(10, 10, 10, 1)}
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #888; 
+    border-radius: 3px; 
+}
+
+/* Optional: hover effects */
+::-webkit-scrollbar-thumb:hover {
+    background-color: #555; 
+}

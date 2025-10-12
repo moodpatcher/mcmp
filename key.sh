@@ -1,0 +1,1 @@
+< /dev/urandom tr -dc '[:print:]' | head -c 4K

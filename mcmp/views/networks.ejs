@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCMP - Networks</title>
+    <link rel="stylesheet" href="networks.css">
+</head>
+<body>
+    <main>
+        <h1>Docker Networks</h1>
+        
+        <!-- Create Network Form -->
+        <div class="create-section">
+            <h2>Create New Network</h2>
+            <form id="create-network-form">
+                <div class="form-group">
+                    <label for="network-name">Network Name:</label>
+                    <input type="text" id="network-name" name="name" required 
+                           pattern="[a-zA-Z0-9][a-zA-Z0-9_.-]*" 
+                           title="Network name must start with alphanumeric character and contain only alphanumeric, underscore, dot, or dash characters">
+                </div>
+                <div class="form-group">
+                    <label for="network-driver">Driver:</label>
+                    <select id="network-driver" name="driver">
+                        <option value="bridge">bridge</option>
+                        <option value="host">host</option>
+                        <option value="overlay">overlay</option>
+                        <option value="macvlan">macvlan</option>
+                        <option value="none">none</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="network-subnet">Subnet (CIDR):</label>
+                    <input type="text" id="network-subnet" name="subnet" 
+                           pattern="^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$"
+                           placeholder="e.g., 192.168.1.0/24"
+                           title="Enter subnet in CIDR notation (e.g., 192.168.1.0/24)">
+                </div>
+                <div class="form-group">
+                    <label for="network-gateway">Gateway IP:</label>
+                    <input type="text" id="network-gateway" name="gateway" 
+                           pattern="^(\d{1,3}\.){3}\d{1,3}$"
+                           placeholder="e.g., 192.168.1.1"
+                           title="Enter gateway IP address (e.g., 192.168.1.1)">
+                </div>
+                <button type="submit" id="create-btn">Create Network</button>
+            </form>
+        </div>
+
+        <!-- Networks List -->
+        <div class="networks-section">
+            <h2>Existing Networks</h2>
+            <div id="networks-container">Loading networks...</div>
+        </div>
+    </main>
+
+    <script>
+        async function loadNetworks() {
+            try {
+                const res = await fetch('/api/networks');
+                if (!res.ok) {
+                    document.getElementById('networks-container').innerHTML = '<div class="error">Error loading networks: ' + res.statusText + '</div>';
+                    return;
+                }
+                
+                const data = await res.json();
+                if (data.status !== 'ok') {
+                    document.getElementById('networks-container').innerHTML = '<div class="error">Error: ' + (data.message || JSON.stringify(data)) + '</div>';
+                    return;
+                }
+
+                const container = document.getElementById('networks-container');
+                container.innerHTML = '';
+
+                if (data.networks.length === 0) {
+                    container.innerHTML = '<div class="no-networks">No networks found</div>';
+                    return;
+                }
+
+                const table = document.createElement('table');
+                table.className = 'networks-table';
+                
+                // Table header
+                const thead = document.createElement('thead');
+                thead.innerHTML = `
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Driver</th>
+                        <th>Scope</th>
+                        <th>Actions</th>
+                    </tr>
+                `;
+                table.appendChild(thead);
+
+                // Table body
+                const tbody = document.createElement('tbody');
+                data.networks.forEach(network => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="network-id">${network.id.substring(0, 12)}...</td>
+                        <td class="network-name">${network.name}</td>
+                        <td class="network-driver">${network.driver}</td>
+                        <td class="network-scope">${network.scope}</td>
+                        <td class="network-actions">
+                            <button class="btn btn-view" onclick="viewNetwork('${network.name}')">View</button>
+                            <button class="btn btn-edit" onclick="editNetwork('${network.name}')">Edit</button>
+                            <button class="btn btn-delete" onclick="deleteNetwork('${network.name}')">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                table.appendChild(tbody);
+                container.appendChild(table);
+
+            } catch (error) {
+                document.getElementById('networks-container').innerHTML = '<div class="error">Network error: ' + error.message + '</div>';
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('create-network-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const name = formData.get('name');
+            const driver = formData.get('driver');
+            const subnet = formData.get('subnet');
+            const gateway = formData.get('gateway');
+            
+            const createBtn = document.getElementById('create-btn');
+            const originalText = createBtn.textContent;
+            
+            try {
+                createBtn.disabled = true;
+                createBtn.textContent = 'Creating...';
+                
+                const payload = { name, driver };
+                if (subnet) payload.subnet = subnet;
+                if (gateway) payload.gateway = gateway;
+                
+                const res = await fetch('/api/networks/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                
+                if (data.status === 'ok') {
+                    // Clear form and reload networks
+                    e.target.reset();
+                    await loadNetworks();
+                    showMessage('Network created successfully!', 'success');
+                } else {
+                    showMessage('Error creating network: ' + (data.message || 'Unknown error'), 'error');
+                }
+                
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            } finally {
+                createBtn.disabled = false;
+                createBtn.textContent = originalText;
+            }
+        });
+
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = message;
+            
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+
+        // View network details
+        async function viewNetwork(name) {
+            try {
+                const res = await fetch(`/api/networks/${name}`);
+                const data = await res.json();
+                
+                if (data.status === 'ok') {
+                    const network = data.network;
+                    const ipam = network.IPAM || {};
+                    const config = ipam.Config && ipam.Config[0] || {};
+                    
+                    const details = `
+                        <div class="network-details">
+                            <h3>Network Details: ${network.Name}</h3>
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <strong>ID:</strong> ${network.Id}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Driver:</strong> ${network.Driver}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Scope:</strong> ${network.Scope}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Subnet:</strong> ${config.Subnet || 'Not specified'}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Gateway:</strong> ${config.Gateway || 'Not specified'}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>IP Range:</strong> ${config.IPRange || 'Not specified'}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Created:</strong> ${new Date(network.Created).toLocaleString()}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Containers:</strong> ${Object.keys(network.Containers || {}).length}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    showModal('Network Details', details);
+                } else {
+                    showMessage('Error loading network details: ' + (data.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            }
+        }
+
+        // Edit network
+        async function editNetwork(name) {
+            try {
+                const res = await fetch(`/api/networks/${name}`);
+                const data = await res.json();
+                
+                if (data.status === 'ok') {
+                    const network = data.network;
+                    const ipam = network.IPAM || {};
+                    const config = ipam.Config && ipam.Config[0] || {};
+                    
+                    const editForm = `
+                        <form id="edit-network-form">
+                            <div class="form-group">
+                                <label>Network Name:</label>
+                                <input type="text" value="${network.Name}" readonly style="background: #f5f5f5;">
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-driver">Driver:</label>
+                                <select id="edit-driver" name="driver">
+                                    <option value="bridge" ${network.Driver === 'bridge' ? 'selected' : ''}>bridge</option>
+                                    <option value="host" ${network.Driver === 'host' ? 'selected' : ''}>host</option>
+                                    <option value="overlay" ${network.Driver === 'overlay' ? 'selected' : ''}>overlay</option>
+                                    <option value="macvlan" ${network.Driver === 'macvlan' ? 'selected' : ''}>macvlan</option>
+                                    <option value="none" ${network.Driver === 'none' ? 'selected' : ''}>none</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-subnet">Subnet (CIDR):</label>
+                                <input type="text" id="edit-subnet" name="subnet" 
+                                       value="${config.Subnet || ''}"
+                                       pattern="^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$"
+                                       placeholder="e.g., 192.168.1.0/24">
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-gateway">Gateway IP:</label>
+                                <input type="text" id="edit-gateway" name="gateway" 
+                                       value="${config.Gateway || ''}"
+                                       pattern="^(\d{1,3}\.){3}\d{1,3}$"
+                                       placeholder="e.g., 192.168.1.1">
+                            </div>
+                            <div class="warning">
+                                <strong>Warning:</strong> Editing a network will recreate it, which may disconnect running containers.
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Update Network</button>
+                                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                            </div>
+                        </form>
+                    `;
+                    
+                    showModal('Edit Network', editForm);
+                    
+                    // Handle edit form submission
+                    document.getElementById('edit-network-form').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        
+                        const formData = new FormData(e.target);
+                        const driver = formData.get('driver');
+                        const subnet = formData.get('subnet');
+                        const gateway = formData.get('gateway');
+                        
+                        try {
+                            const payload = { driver };
+                            if (subnet) payload.subnet = subnet;
+                            if (gateway) payload.gateway = gateway;
+                            
+                            const res = await fetch(`/api/networks/${name}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+                            
+                            const data = await res.json();
+                            
+                            if (data.status === 'ok') {
+                                closeModal();
+                                await loadNetworks();
+                                showMessage('Network updated successfully!', 'success');
+                            } else {
+                                showMessage('Error updating network: ' + (data.message || 'Unknown error'), 'error');
+                            }
+                        } catch (error) {
+                            showMessage('Network error: ' + error.message, 'error');
+                        }
+                    });
+                } else {
+                    showMessage('Error loading network details: ' + (data.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            }
+        }
+
+        // Delete network
+        async function deleteNetwork(name) {
+            if (!confirm(`Are you sure you want to delete the network "${name}"? This action cannot be undone and may disconnect running containers.`)) {
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/networks/${name}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await res.json();
+                
+                if (data.status === 'ok') {
+                    await loadNetworks();
+                    showMessage('Network deleted successfully!', 'success');
+                } else {
+                    showMessage('Error deleting network: ' + (data.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            }
+        }
+
+        // Modal functions
+        function showModal(title, content) {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3>${title}</h3>
+                        <button class="modal-close" onclick="closeModal()">&times;</button>
+                    </div>
+                    <div class="modal-content">
+                        ${content}
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function closeModal() {
+            const modal = document.querySelector('.modal-overlay');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // Load networks on page load
+        loadNetworks();
+    </script>
+</body>
+</html>

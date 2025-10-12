@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCMP - Containers</title>
+    <link rel="stylesheet" href="containers.css">
+</head>
+<body>
+    <main>
+        <h1>Containers</h1>
+        
+        <!-- Create Container Form -->
+        <div class="create-section">
+            <h2>Create New Container</h2>
+            <form id="create-container-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="container-name">Container Name:</label>
+                        <input type="text" id="container-name" name="name" required 
+                               pattern="[a-zA-Z0-9][a-zA-Z0-9_.-]*" 
+                               title="Container name must start with alphanumeric character and contain only alphanumeric, underscore, dot, or dash characters">
+                    </div>
+                    <div class="form-group">
+                        <label for="container-image">Image:</label>
+                        <input type="text" id="container-image" name="image" required 
+                               placeholder="e.g., nginx:latest, ubuntu:20.04">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="container-command">Command:</label>
+                        <input type="text" id="container-command" name="command" 
+                               placeholder="e.g., /bin/bash, nginx -g 'daemon off;'">
+                    </div>
+                    <div class="form-group">
+                        <label for="container-ports">Ports:</label>
+                        <input type="text" id="container-ports" name="ports" 
+                               placeholder="e.g., 80:80, 8080:8080">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="container-env">Environment Variables:</label>
+                        <input type="text" id="container-env" name="env" 
+                               placeholder="e.g., NODE_ENV=production, DB_HOST=localhost">
+                    </div>
+                    <div class="form-group">
+                        <label for="container-volumes">Volumes:</label>
+                        <input type="text" id="container-volumes" name="volumes" 
+                               placeholder="e.g., /host/path:/container/path">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="container-networks">Network:</label>
+                        <input type="text" id="container-networks" name="networks" 
+                               placeholder="e.g., bridge, my-network">
+                    </div>
+                    <div class="form-group">
+                        <label for="container-restart">Restart Policy:</label>
+                        <select id="container-restart" name="restart">
+                            <option value="no">No</option>
+                            <option value="always">Always</option>
+                            <option value="unless-stopped">Unless Stopped</option>
+                            <option value="on-failure">On Failure</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" id="container-privileged" name="privileged">
+                            Privileged Mode
+                        </label>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" id="container-detach" name="detach" checked>
+                            Run in Background (Detached)
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" id="create-btn">Create Container</button>
+            </form>
+        </div>
+
+        <!-- Containers List -->
+        <div class="containers-section">
+            <h2>Existing Containers</h2>
+            <div id="containers-container">Loading containers...</div>
+        </div>
+    </main>
+
+    <script>
+        async function loadContainers() {
+            try {
+                const res = await fetch('/api/containers');
+                if (!res.ok) {
+                    document.getElementById('containers-container').innerHTML = '<div class="error">Error loading containers: ' + res.statusText + '</div>';
+                    return;
+                }
+                
+                const data = await res.json();
+                if (data.status !== 'ok') {
+                    document.getElementById('containers-container').innerHTML = '<div class="error">Error: ' + (data.message || JSON.stringify(data)) + '</div>';
+                    return;
+                }
+
+                const container = document.getElementById('containers-container');
+                container.innerHTML = '';
+
+                if (data.containers.length === 0) {
+                    container.innerHTML = '<div class="no-containers">No containers found</div>';
+                    return;
+                }
+
+                const table = document.createElement('table');
+                table.className = 'containers-table';
+                
+                // Table header
+                const thead = document.createElement('thead');
+                thead.innerHTML = `
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Image</th>
+                        <th>Status</th>
+                        <th>Ports</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                `;
+                table.appendChild(thead);
+
+                // Table body
+                const tbody = document.createElement('tbody');
+                data.containers.forEach(container => {
+                    const row = document.createElement('tr');
+                    const isRunning = container.status.includes('Up');
+                    const statusClass = isRunning ? 'status-running' : 'status-stopped';
+                    
+                    row.innerHTML = `
+                        <td class="container-id">${container.id.substring(0, 12)}...</td>
+                        <td class="container-name">${container.names}</td>
+                        <td class="container-image">${container.image}</td>
+                        <td class="container-status ${statusClass}">${container.status}</td>
+                        <td class="container-ports">${container.ports || 'None'}</td>
+                        <td class="container-created">${new Date(container.createdAt).toLocaleDateString()}</td>
+                        <td class="container-actions">
+                            <button class="btn btn-view" onclick="viewContainer('${container.id}')">View</button>
+                            ${isRunning ? 
+                                `<button class="btn btn-stop" onclick="stopContainer('${container.id}')">Stop</button>` :
+                                `<button class="btn btn-start" onclick="startContainer('${container.id}')">Start</button>`
+                            }
+                            <button class="btn btn-delete" onclick="deleteContainer('${container.id}')">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                table.appendChild(tbody);
+                container.appendChild(table);
+
+            } catch (error) {
+                document.getElementById('containers-container').innerHTML = '<div class="error">Network error: ' + error.message + '</div>';
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('create-container-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const name = formData.get('name');
+            const image = formData.get('image');
+            const command = formData.get('command');
+            const ports = formData.get('ports');
+            const env = formData.get('env');
+            const volumes = formData.get('volumes');
+            const networks = formData.get('networks');
+            const restart = formData.get('restart');
+            const privileged = formData.get('privileged') === 'on';
+            const detach = formData.get('detach') === 'on';
+            
+            const createBtn = document.getElementById('create-btn');
+            const originalText = createBtn.textContent;
+            
+            try {
+                createBtn.disabled = true;
+                createBtn.textContent = 'Creating...';
+                
+                const payload = { name, image, restart, privileged, detach };
+                if (command) payload.command = command;
+                if (ports) payload.ports = ports;
+                if (env) payload.env = env;
+                if (volumes) payload.volumes = volumes;
+                if (networks) payload.networks = networks;
+                
+                const res = await fetch('/api/containers/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                
+                if (data.status === 'ok') {
+                    // Clear form and reload containers
+                    e.target.reset();
+                    document.getElementById('container-detach').checked = true; // Reset checkbox
+                    await loadContainers();
+                    showMessage('Container created successfully!', 'success');
+                } else {
+                    showMessage('Error creating container: ' + (data.message || 'Unknown error'), 'error');
+                }
+                
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            } finally {
+                createBtn.disabled = false;
+                createBtn.textContent = originalText;
+            }
+        });
+
+        // Start container
+        async function startContainer(id) {
+            try {
+                const res = await fetch(`/api/containers/${id}/start`, {
+                    method: 'POST'
+                });
+                
+                const data = await res.json();
+                
+                if (data.status === 'ok') {
+                    await loadContainers();
+                    showMessage('Container started successfully!', 'success');
+                } else {
+                    showMessage('Error starting container: ' + (data.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            }
+        }
+
+        // Stop container
+        async function stopContainer(id) {
+            try {
+                const res = await fetch(`/api/containers/${id}/stop`, {
+                    method: 'POST'
+                });
+                
+                const data = await res.json();
+                
+                if (data.status === 'ok') {
+                    await loadContainers();
+                    showMessage('Container stopped successfully!', 'success');
+                } else {
+                    showMessage('Error stopping container: ' + (data.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            }
+        }
+
+        // Delete container
+        async function deleteContainer(id) {
+            if (!confirm('Are you sure you want to delete this container? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/containers/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await res.json();
+                
+                if (data.status === 'ok') {
+                    await loadContainers();
+                    showMessage('Container deleted successfully!', 'success');
+                } else {
+                    showMessage('Error deleting container: ' + (data.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            }
+        }
+
+        // View container details
+        async function viewContainer(id) {
+            try {
+                const res = await fetch(`/api/containers/${id}`);
+                const data = await res.json();
+                
+                if (data.status === 'ok') {
+                    const container = data.container;
+                    const config = container.Config || {};
+                    const state = container.State || {};
+                    const networkSettings = container.NetworkSettings || {};
+                    const mounts = container.Mounts || [];
+                    
+                    // Format environment variables
+                    const envVars = config.Env || [];
+                    const envDisplay = envVars.length > 0 ? envVars.join('<br>') : 'None';
+                    
+                    // Format port bindings
+                    const portBindings = networkSettings.Ports || {};
+                    const portsDisplay = Object.keys(portBindings).length > 0 ? 
+                        Object.entries(portBindings).map(([port, binding]) => 
+                            `${port} → ${binding ? binding.map(b => b.HostIp + ':' + b.HostPort).join(', ') : 'None'}`
+                        ).join('<br>') : 'None';
+                    
+                    // Format volumes
+                    const volumesDisplay = mounts.length > 0 ? 
+                        mounts.map(mount => `${mount.Source || 'N/A'} → ${mount.Destination}`).join('<br>') : 'None';
+                    
+                    // Format networks
+                    const networks = networkSettings.Networks || {};
+                    const networksDisplay = Object.keys(networks).length > 0 ? 
+                        Object.keys(networks).join(', ') : 'None';
+                    
+                    const details = `
+                        <div class="container-details">
+                            <h3>Container Details: ${container.Name ? container.Name.substring(1) : 'Unknown'}</h3>
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <strong>ID:</strong> ${container.Id}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Image:</strong> ${config.Image || 'Unknown'}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Status:</strong> ${state.Status || 'Unknown'}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Running:</strong> ${state.Running ? 'Yes' : 'No'}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Created:</strong> ${new Date(container.Created).toLocaleString()}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Started:</strong> ${state.StartedAt ? new Date(state.StartedAt).toLocaleString() : 'Never'}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Command:</strong> ${config.Cmd ? config.Cmd.join(' ') : 'None'}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Working Directory:</strong> ${config.WorkingDir || 'None'}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>User:</strong> ${config.User || 'root'}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Privileged:</strong> ${config.Privileged ? 'Yes' : 'No'}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Restart Policy:</strong> ${container.HostConfig ? container.HostConfig.RestartPolicy.Name : 'None'}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Memory Limit:</strong> ${container.HostConfig && container.HostConfig.Memory ? 
+                                        Math.round(container.HostConfig.Memory / 1024 / 1024) + ' MB' : 'Unlimited'}
+                                </div>
+                                <div class="detail-item full-width">
+                                    <strong>Environment Variables:</strong><br>
+                                    <div class="env-vars">${envDisplay}</div>
+                                </div>
+                                <div class="detail-item full-width">
+                                    <strong>Port Mappings:</strong><br>
+                                    <div class="port-mappings">${portsDisplay}</div>
+                                </div>
+                                <div class="detail-item full-width">
+                                    <strong>Volume Mounts:</strong><br>
+                                    <div class="volume-mounts">${volumesDisplay}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Networks:</strong> ${networksDisplay}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>IP Address:</strong> ${networkSettings.IPAddress || 'None'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    showModal('Container Details', details);
+                } else {
+                    showMessage('Error loading container details: ' + (data.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            }
+        }
+
+        // Modal functions
+        function showModal(title, content) {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3>${title}</h3>
+                        <button class="modal-close" onclick="closeModal()">&times;</button>
+                    </div>
+                    <div class="modal-content">
+                        ${content}
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function closeModal() {
+            const modal = document.querySelector('.modal-overlay');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = message;
+            
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+
+        // Load containers on page load
+        loadContainers();
+    </script>
+</body>
+</html>

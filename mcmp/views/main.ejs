@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/main.css">
+    <title>MCMP</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <script>
+    </script>
+</head>
+<body>
+    <script>
+        let sidebarToggled = false;
+        function onMenuClick() {
+            document.getElementById("sidebar").style.display = !sidebarToggled ? "block" : "none";
+            sidebarToggled = !sidebarToggled;
+        }
+
+        function redirect(path) {
+            window.location.href = "/?page=" + path;
+        }
+    </script>
+    <div id="sidebar">
+        <script>
+            //let sidebarOptions = JSON.parse("<%- JSON.stringify(sidebarOptions) %>");
+            let sidebarOptions = JSON.parse('<%- JSON.stringify(sidebarOptions) %>');
+            for (let option in sidebarOptions) {
+                let optionDiv = document.createElement("div");
+                optionDiv.innerHTML = option;
+                optionDiv.classList.add("sidebar_entry");
+                document.getElementById("sidebar").append(optionDiv)
+                optionDiv.onclick = () => {
+                    window.location.href = "/?page=" + sidebarOptions[option];
+                };
+            }
+        </script>
+        <div class="sidebar_entry" onclick="onMenuClick();">❌ Close</div>
+    </div>
+    <div id="navbar">
+        <div id=navbar_first>
+            <img class="navbar-menu" style="float: left;" onclick="onMenuClick();" src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Hamburger_icon_white.svg/120px-Hamburger_icon_white.svg.png?20190820131613">
+            <img id="server_name" src="logo.png">
+        </div>
+        <div id="userbar"></div>
+    </div>  
+      <div class="second-row">
+        <iframe id="page_iframe" width="100%" src=/<%= site %> allowtransparency="true"></iframe>
+      </div>
+
+    <div id="footer"><center>© 2025 (MCMP) moodpatcher's container-management platform</center>
+    </div>
+
+    <script>
+        let loggedIn = "<%- loggedIn %>";
+
+        if (loggedIn) {
+            let userData = JSON.parse('<%- JSON.stringify(userData) %>');
+            document.getElementById("userbar").style.display = "block";
+            document.getElementById("userbar").innerHTML = `👤User: <b> ${userData.username}</b> 📍 Region: ${userData.region}`;
+        }
+
+        else {
+            document.getElementById("userbar").style.display = "none";
+        }
+    </script>
+</body>
+</html>
