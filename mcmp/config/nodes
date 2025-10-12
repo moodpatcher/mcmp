@@ -1,5 +1,0 @@
-# Node name, Node IP, docker/podman, keyfile, user
-#
-# example 127.0.0.1 docker id_rsa mcmp
-# example2 192.168.0.2 podman id_rsa root
-#
