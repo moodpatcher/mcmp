@@ -8,6 +8,72 @@
     <link rel="stylesheet" href="volumes.css">
 </head>
 <body>
-    nincs implementálva
+    <div id="main">
+        <div id="title"><h1>Volume Management</h1></div>
+        <div id="volumes-div">
+            <h2>Volumes</h2>
+            <table id="volumes-table">
+                <tr id="table-first-row">
+                    <td>Volume Name</td>
+                    <td>Action</td>
+                </tr>
+            </table>
+        </div>
+
+    </div>
+    <script>
+        async function loadVolumes() {
+            const res = await fetch('/api/volumes');
+            const data = await res.json();
+
+            if (data.volumes.length === 0) {
+                document.getElementById("volumes-div").innerHTML = '<center>No volumes found.</center>';
+                return;
+            }
+
+            let volumes = data.volumes;
+            let volumes_table = document.getElementById("volumes-table");
+            for (let volume of volumes) {
+                let tr = document.createElement("tr");
+                tr.className = "volume-tr";
+                
+                let tdName = document.createElement("td");
+                tdName.innerHTML = `<span class="vol-name">${volume.name}</span> <span class="vol-size">(size: ${volume.size})</span>`;
+
+                let tdAction = document.createElement("td");
+                let delButton = document.createElement("div");
+                delButton.innerHTML = "Delete";
+                delButton.className = "delButton";
+
+                tr.appendChild(tdName);
+                tr.appendChild(tdAction);
+                tdAction.appendChild(delButton);
+
+                tdName.style.width = "94%";
+                tdAction.style.width = "fit-content";
+
+                volumes_table.appendChild(tr);
+
+                delButton.onclick = async () => {
+                    if (!confirm(`Are you sure you want to delete the volume "${volume.name}"?`)) {
+                        return;
+                    }
+
+                    try {
+                        const res = await fetch(`/api/volumes/${volume.name}`, {
+                            method: 'DELETE'
+                        });
+
+                        const data = await res.json();
+                        window.parent.location.reload(true);
+                    } catch (error) {
+                    }
+                }
+            }
+        }
+
+        loadVolumes();
+    
+        </script>
 </body>
 </html>

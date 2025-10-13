@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCMP - Region Stats</title>
+    <link rel="stylesheet" href="region_stats.css">
+</head>
+<body>
+    <main>
+        <h1>Region Stats</h1>
+        
+        <!-- Stats Overview -->
+        <div class="stats-section">
+            <h2>System Overview</h2>
+            <div id="stats-container">Loading statistics...</div>
+        </div>
+
+        <!-- Memory Usage -->
+        <div class="memory-section">
+            <h2>Memory Usage</h2>
+            <div id="memory-container">Loading memory info...</div>
+        </div>
+
+        <!-- System Information -->
+        <div class="system-section">
+            <h2>System Information</h2>
+            <div id="system-container">Loading system info...</div>
+        </div>
+
+        <!-- Disk Usage -->
+        <div class="disk-section">
+            <h2>Disk Usage</h2>
+            <div id="disk-container">Loading disk info...</div>
+        </div>
+
+        <!-- SSH Command Execution -->
+        <div class="ssh-section">
+            <h2>SSH Command Execution</h2>
+            <div class="ssh-controls">
+                <div class="command-input-group">
+                    <input type="text" id="ssh-command" placeholder="Enter SSH command (e.g., ls -la, ps aux, docker ps)" />
+                    <button id="execute-ssh-btn" class="btn btn-primary">Execute</button>
+                </div>
+                <div id="ssh-output" class="ssh-output"></div>
+            </div>
+        </div>
+
+        <!-- System Control -->
+        <div class="system-control-section">
+            <h2>System Control</h2>
+            <div class="control-buttons">
+                <button id="reboot-btn" class="btn btn-warning">Reboot Region</button>
+                <button id="shutdown-btn" class="btn btn-danger">Shutdown Region</button>
+            </div>
+            <div class="warning">
+                <strong>⚠️ Warning:</strong> These actions will immediately reboot or shutdown the selected region. Use with caution!
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/region-stats');
+                
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        document.getElementById('stats-container').innerHTML = `<div class="error">Please log in and select a region first</div>`;
+                        return;
+                    }
+                    document.getElementById('stats-container').innerHTML = `<div class="error">HTTP Error: ${res.status} ${res.statusText}</div>`;
+                    return;
+                }
+                
+                const data = await res.json();
+                
+                if (data.status === 'ok') {
+                    renderStats(data.stats);
+                } else {
+                    document.getElementById('stats-container').innerHTML = `<div class="error">API Error: ${data.message || 'Unknown error'}</div>`;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                document.getElementById('stats-container').innerHTML = `<div class="error">Network error: ${error.message}</div>`;
+            }
+        }
+
+        function renderStats(stats) {
+            // System Overview
+            const statsContainer = document.getElementById('stats-container');
+            statsContainer.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">⏱️</div>
+                        <div class="stat-label">Uptime</div>
+                        <div class="stat-value">${stats.system.uptime}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🖥️</div>
+                        <div class="stat-label">CPU Usage</div>
+                        <div class="stat-value">${stats.cpu.usage.toFixed(1)}%</div>
+                    </div>
+                </div>
+            `;
+
+            // Memory Usage
+            const memoryContainer = document.getElementById('memory-container');
+            const memoryUsedPercent = Math.round((parseFloat(stats.memory.used) / parseFloat(stats.memory.total)) * 100);
+            const swapUsedPercent = stats.memory.swapTotal !== '0B' ? 
+                Math.round((parseFloat(stats.memory.swapUsed) / parseFloat(stats.memory.swapTotal)) * 100) : 0;
+            
+            memoryContainer.innerHTML = `
+                <div class="memory-grid">
+                    <div class="memory-card">
+                        <h3>RAM Usage</h3>
+                        <div class="memory-bar">
+                            <div class="memory-bar-fill" style="width: ${memoryUsedPercent}%"></div>
+                        </div>
+                        <div class="memory-details">
+                            <div class="memory-item">
+                                <span class="memory-label">Used:</span>
+                                <span class="memory-value">${stats.memory.used} / ${stats.memory.total}</span>
+                            </div>
+                            <div class="memory-item">
+                                <span class="memory-label">Available:</span>
+                                <span class="memory-value">${stats.memory.available}</span>
+                            </div>
+                            <div class="memory-item">
+                                <span class="memory-label">Free:</span>
+                                <span class="memory-value">${stats.memory.free}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="memory-card">
+                        <h3>Swap Usage</h3>
+                        <div class="memory-bar">
+                            <div class="memory-bar-fill swap" style="width: ${swapUsedPercent}%"></div>
+                        </div>
+                        <div class="memory-details">
+                            <div class="memory-item">
+                                <span class="memory-label">Used:</span>
+                                <span class="memory-value">${stats.memory.swapUsed} / ${stats.memory.swapTotal}</span>
+                            </div>
+                            <div class="memory-item">
+                                <span class="memory-label">Free:</span>
+                                <span class="memory-value">${stats.memory.swapFree}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // System Information
+            const systemContainer = document.getElementById('system-container');
+            systemContainer.innerHTML = `
+                <div class="system-grid">
+                    <div class="system-card">
+                        <div class="system-icon">🖥️</div>
+                        <div class="system-info">
+                            <div class="system-label">Hostname</div>
+                            <div class="system-value">${stats.system.hostname}</div>
+                        </div>
+                    </div>
+                    <div class="system-card">
+                        <div class="system-icon">💻</div>
+                        <div class="system-info">
+                            <div class="system-label">Operating System</div>
+                            <div class="system-value">${stats.system.os.name}</div>
+                        </div>
+                    </div>
+                    <div class="system-card">
+                        <div class="system-icon">📋</div>
+                        <div class="system-info">
+                            <div class="system-label">OS Version</div>
+                            <div class="system-value">${stats.system.os.version}</div>
+                        </div>
+                    </div>
+                    <div class="system-card">
+                        <div class="system-icon">🔧</div>
+                        <div class="system-info">
+                            <div class="system-label">CPU Architecture</div>
+                            <div class="system-value">${stats.system.architecture}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Disk Usage
+            const diskContainer = document.getElementById('disk-container');
+            const diskTable = document.createElement('table');
+            diskTable.className = 'disk-table';
+
+            diskContainer.innerHTML = '';
+            
+            const thead = document.createElement('thead');
+            thead.innerHTML = `
+                <tr>
+                    <th>Filesystem</th>
+                    <th>Size</th>
+                    <th>Used</th>
+                    <th>Available</th>
+                    <th>Use%</th>
+                    <th>Mounted On</th>
+                </tr>
+            `;
+            diskTable.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            stats.disk.forEach(disk => {
+                const row = document.createElement('tr');
+                const usePercent = parseInt(disk.usePercent);
+                const usageClass = usePercent > 90 ? 'critical' : usePercent > 80 ? 'warning' : 'normal';
+                
+                row.innerHTML = `
+                    <td class="disk-filesystem">${disk.filesystem}</td>
+                    <td class="disk-size">${disk.size}</td>
+                    <td class="disk-used">${disk.used}</td>
+                    <td class="disk-available">${disk.available}</td>
+                    <td class="disk-usage ${usageClass}">${disk.usePercent}</td>
+                    <td class="disk-mounted">${disk.mounted}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            diskTable.appendChild(tbody);
+            diskContainer.appendChild(diskTable);
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = message;
+            
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+
+        // SSH Command Execution
+        async function executeSSHCommand() {
+            const command = document.getElementById('ssh-command').value.trim();
+            if (!command) {
+                showMessage('Please enter a command', 'error');
+                return;
+            }
+
+            const executeBtn = document.getElementById('execute-ssh-btn');
+            const outputDiv = document.getElementById('ssh-output');
+            
+            try {
+                executeBtn.disabled = true;
+                executeBtn.textContent = 'Executing...';
+                outputDiv.innerHTML = '<div class="loading">Executing command...</div>';
+
+                const res = await fetch('/api/ssh-exec', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command })
+                });
+
+                const data = await res.json();
+
+                if (data.status === 'ok') {
+                    outputDiv.innerHTML = `<pre class="command-output">${data.output}</pre>`;
+                } else {
+                    outputDiv.innerHTML = `<div class="error">Error: ${data.message || 'Unknown error'}</div>`;
+                }
+            } catch (error) {
+                outputDiv.innerHTML = `<div class="error">Network error: ${error.message}</div>`;
+            } finally {
+                executeBtn.disabled = false;
+                executeBtn.textContent = 'Execute';
+            }
+        }
+
+        // System Control Functions
+        async function rebootRegion() {
+            if (!confirm('Are you sure you want to reboot the region? This will immediately restart the system.')) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/region-reboot', {
+                    method: 'POST'
+                });
+
+                const data = await res.json();
+
+                if (data.status === 'ok') {
+                    showMessage('Reboot command sent successfully!', 'success');
+                } else {
+                    showMessage('Error: ' + (data.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            }
+        }
+
+        async function shutdownRegion() {
+            if (!confirm('Are you sure you want to shutdown the region? This will immediately power off the system.')) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/region-shutdown', {
+                    method: 'POST'
+                });
+
+                const data = await res.json();
+
+                if (data.status === 'ok') {
+                    showMessage('Shutdown command sent successfully!', 'success');
+                } else {
+                    showMessage('Error: ' + (data.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('execute-ssh-btn').addEventListener('click', executeSSHCommand);
+        document.getElementById('ssh-command').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                executeSSHCommand();
+            }
+        });
+        document.getElementById('reboot-btn').addEventListener('click', rebootRegion);
+        document.getElementById('shutdown-btn').addEventListener('click', shutdownRegion);
+
+        // Load stats on page load
+        loadStats();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(loadStats, 3000);
+    </script>
+</body>
+</html>

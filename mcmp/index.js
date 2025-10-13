@@ -22,7 +22,7 @@ let sidebarOptionsLoggedIn = {
     "💻 Containers / VMs": "containers",
     "🔋 Power Saving": "power_saving",
     "📍 Change Regions": "regions",
-    "📊 Region Stats": "region-stats",
+    "📊 Region Stats": "region_stats",
 };
 
 //Automatikus oldalak, amiket létrehoz
@@ -35,7 +35,7 @@ let pages = {
     "containers": { login: true },
     "power_saving": { login: true },
     "regions": { login: true },
-    "region-stats": { login: true },
+    "region_stats": { login: true },
 };
 
 app.use(express.urlencoded({ extended: true }));
@@ -244,9 +244,6 @@ function getRegions() {
             try {
                 const res = await execCommand(hostIP, user, keyName, cmd, options);
                 regions[regionName].online = true;
-
-                sshCommand("grande-shitbox", "free -h", (res) => { console.log(res) });
-                
             } catch (e) {
                 //region cant be reached
             }
@@ -349,6 +346,8 @@ function executeSchedule(schedule) {
 setInterval(checkPowerSavingSchedules, 60000); // 60 seconds = 1 minute
 
 function sshCommand(region, command, result) {
+    console.log(`sshCommand: (${region}) | ${command}`);
+
     return (async () => {
         try {
             const res = await execCommand(regions[region].ip, regions[region].user, regions[region].key, command, {});
@@ -528,6 +527,8 @@ app.post('/api/containers/create', (req, res) => {
         env = '', 
         volumes = '', 
         networks = '', 
+        devices = '',
+        customCommand = '',
         privileged = false, 
         restart = 'no',
         detach = true 
@@ -545,10 +546,41 @@ app.post('/api/containers/create', (req, res) => {
     if (privileged) cmd += ' --privileged';
     if (restart !== 'no') cmd += ` --restart ${restart}`;
     if (name) cmd += ` --name ${name}`;
-    if (ports) cmd += ` -p ${ports}`;
-    if (env) cmd += ` -e ${env}`;
-    if (volumes) cmd += ` -v ${volumes}`;
+    
+    // Handle multiple ports
+    if (ports) {
+        const portList = ports.split(',').map(p => p.trim()).filter(p => p);
+        portList.forEach(port => {
+            cmd += ` -p ${port}`;
+        });
+    }
+    
+    // Handle multiple environment variables
+    if (env) {
+        const envList = env.split(',').map(e => e.trim()).filter(e => e);
+        envList.forEach(envVar => {
+            cmd += ` -e ${envVar}`;
+        });
+    }
+    
+    // Handle multiple volumes
+    if (volumes) {
+        const volumeList = volumes.split(',').map(v => v.trim()).filter(v => v);
+        volumeList.forEach(volume => {
+            cmd += ` -v ${volume}`;
+        });
+    }
+    
+    // Handle multiple devices
+    if (devices) {
+        const deviceList = devices.split(',').map(d => d.trim()).filter(d => d);
+        deviceList.forEach(device => {
+            cmd += ` --device ${device}`;
+        });
+    }
+    
     if (networks) cmd += ` --network ${networks}`;
+    if (customCommand) cmd += ` ${customCommand}`;
     cmd += ` ${image}`;
     if (command) cmd += ` ${command}`;
 
@@ -758,6 +790,177 @@ app.delete('/api/power-saving/:id', (req, res) => {
     } catch (e) {
         res.status(500).json({ status: 'error', message: 'Failed to delete schedule' });
     }
+});
+
+// SSH Command Execution API: execute custom SSH commands (requires login)
+app.post('/api/ssh-exec', (req, res) => {
+    if (!req.session || !req.session.loggedIn) { res.status(401).json({ status: 'error', message: 'unauthenticated' }); return; }
+    if (!req.session.userData.region || req.session.userData.region === 'none') { res.status(400).json({ status: 'error', message: 'no region selected' }); return; }
+
+    const { command } = req.body || {};
+    if (!command) { res.status(400).json({ status: 'error', message: 'command required' }); return; }
+
+    const region = req.session.userData.region;
+    if (!regions || !regions[region]) { res.status(400).json({ status: 'error', message: 'invalid region' }); return; }
+
+    sshCommand(region, command, (result) => {
+        res.json({ status: 'ok', output: result });
+    });
+});
+
+// System Control API: reboot region (requires login)
+app.post('/api/region-reboot', (req, res) => {
+    if (!req.session || !req.session.loggedIn) { res.status(401).json({ status: 'error', message: 'unauthenticated' }); return; }
+    if (!req.session.userData.region || req.session.userData.region === 'none') { res.status(400).json({ status: 'error', message: 'no region selected' }); return; }
+
+    const region = req.session.userData.region;
+    if (!regions || !regions[region]) { res.status(400).json({ status: 'error', message: 'invalid region' }); return; }
+
+    sshCommand(region, 'sudo reboot', (result) => {
+        res.json({ status: 'ok', message: 'Reboot command sent successfully' });
+    });
+});
+
+// System Control API: shutdown region (requires login)
+app.post('/api/region-shutdown', (req, res) => {
+    if (!req.session || !req.session.loggedIn) { res.status(401).json({ status: 'error', message: 'unauthenticated' }); return; }
+    if (!req.session.userData.region || req.session.userData.region === 'none') { res.status(400).json({ status: 'error', message: 'no region selected' }); return; }
+
+    const region = req.session.userData.region;
+    if (!regions || !regions[region]) { res.status(400).json({ status: 'error', message: 'invalid region' }); return; }
+
+    sshCommand(region, 'sudo shutdown -h now', (result) => {
+        res.json({ status: 'ok', message: 'Shutdown command sent successfully' });
+    });
+});
+
+// Region Stats API: get system stats (requires login)
+app.get('/api/region-stats', (req, res) => {
+    if (!req.session || !req.session.loggedIn) { res.status(401).json({ status: 'error', message: 'unauthenticated' }); return; }
+    if (!req.session.userData.region || req.session.userData.region === 'none') { res.status(400).json({ status: 'error', message: 'no region selected' }); return; }
+
+    const region = req.session.userData.region;
+    if (!regions || !regions[region]) { res.status(400).json({ status: 'error', message: 'invalid region' }); return; }
+
+    // Get memory usage
+    sshCommand(region, 'free -h', (memoryResult) => {
+        // Get CPU usage
+        sshCommand(region, "top -bn1 | grep 'Cpu(s)' | awk '{print $2}' | awk -F'%' '{print $1}'", (cpuResult) => {
+            // Get system load
+            sshCommand(region, 'uptime', (uptimeResult) => {
+                // Get OS info
+                sshCommand(region, 'cat /etc/os-release', (osResult) => {
+                    // Get hostname
+                    sshCommand(region, 'hostname', (hostnameResult) => {
+                        // Get CPU architecture
+                        sshCommand(region, 'uname -m', (archResult) => {
+                            // Get disk usage
+                            sshCommand(region, 'df -h', (diskResult) => {
+                                try {
+                                    // Parse memory info
+                                    const memoryLines = memoryResult.trim().split('\n');
+                                    const memInfo = memoryLines[1].split(/\s+/);
+                                    const swapInfo = memoryLines[2].split(/\s+/);
+
+                                    // Parse OS info
+                                    const osLines = osResult.trim().split('\n');
+                                    const osInfo = {};
+                                    osLines.forEach(line => {
+                                        const [key, value] = line.split('=');
+                                        if (key && value) {
+                                            osInfo[key] = value.replace(/"/g, '');
+                                        }
+                                    });
+
+                                    // Parse disk info
+                                    const diskLines = diskResult.trim().split('\n').slice(1);
+                                    const diskUsage = diskLines.map(line => {
+                                        const parts = line.split(/\s+/);
+                                        return {
+                                            filesystem: parts[0],
+                                            size: parts[1],
+                                            used: parts[2],
+                                            available: parts[3],
+                                            usePercent: parts[4],
+                                            mounted: parts[5]
+                                        };
+                                    });
+
+                                    const stats = {
+                                        memory: {
+                                            total: memInfo[1],
+                                            used: memInfo[2],
+                                            free: memInfo[3],
+                                            available: memInfo[6],
+                                            swapTotal: swapInfo[1],
+                                            swapUsed: swapInfo[2],
+                                            swapFree: swapInfo[3]
+                                        },
+                                        cpu: {
+                                            usage: parseFloat(cpuResult.trim()) || 0
+                                        },
+                                        system: {
+                                            uptime: uptimeResult.trim(),
+                                            hostname: hostnameResult.trim(),
+                                            architecture: archResult.trim(),
+                                            os: {
+                                                name: osInfo.NAME || 'Unknown',
+                                                version: osInfo.VERSION || 'Unknown',
+                                                id: osInfo.ID || 'Unknown',
+                                                versionId: osInfo.VERSION_ID || 'Unknown'
+                                            }
+                                        },
+                                        disk: diskUsage
+                                    };
+
+                                    res.json({ status: 'ok', stats });
+                                } catch (e) {
+                                    res.status(500).json({ status: 'error', message: 'Failed to parse system stats' });
+                                }
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    });
+});
+
+// Volumes API: list Docker volumes (requires login)
+app.get('/api/volumes', (req, res) => {
+    if (!req.session || !req.session.loggedIn) { res.status(401).json({ status: 'error', message: 'unauthenticated' }); return; }
+    if (!req.session.userData.region || req.session.userData.region === 'none') { res.status(400).json({ status: 'error', message: 'no region selected' }); return; }
+
+    const region = req.session.userData.region;
+    if (!regions || !regions[region]) { res.status(400).json({ status: 'error', message: 'invalid region' }); return; }
+
+    sshCommand(region, 'docker volume ls --format \'{{.Name}}\' | xargs -I{} sh -c \'echo -n "{}|"; du -sh "$(docker volume inspect {} --format "{{.Mountpoint}}")" 2>/dev/null | cut -f1\'', (result) => {
+        try {
+            const volumes = result.trim().split('\n').filter(line => line.trim()).map(line => {
+                const [name, size] = line.split('|');
+                return { name, size };
+            });
+            res.json({ status: 'ok', volumes });
+        } catch (e) {
+            res.status(500).json({ status: 'error', message: 'Failed to parse network data' });
+        }
+    });
+});
+
+// Volumes API: delete volume (requires login)
+app.delete('/api/volumes/:name', (req, res) => {
+    if (!req.session || !req.session.loggedIn) { res.status(401).json({ status: 'error', message: 'unauthenticated' }); return; }
+    if (!req.session.userData.region || req.session.userData.region === 'none') { res.status(400).json({ status: 'error', message: 'no region selected' }); return; }
+
+    const { name } = req.params;
+    if (!name) { res.status(400).json({ status: 'error', message: 'volume name required' }); return; }
+
+    const region = req.session.userData.region;
+    if (!regions || !regions[region]) { res.status(400).json({ status: 'error', message: 'invalid region' }); return; }
+
+    sshCommand(region, `docker volume rm -f ${name}`, (result) => {
+        res.json({ status: 'ok', message: `Volume '${name}' deleted successfully` });
+    });
 });
 
 //404 - keep this last so API routes above are reachable

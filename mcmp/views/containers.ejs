@@ -72,6 +72,19 @@
                 </div>
 
                 <div class="form-row">
+                    <div class="form-group">
+                        <label for="container-devices">Devices:</label>
+                        <input type="text" id="container-devices" name="devices" 
+                               placeholder="e.g., /dev/ttyUSB0:/dev/ttyUSB0, /dev/snd:/dev/snd">
+                    </div>
+                    <div class="form-group">
+                        <label for="container-custom-command">Custom Docker Run Command:</label>
+                        <input type="text" id="container-custom-command" name="customCommand" 
+                               placeholder="e.g., --cap-add=SYS_ADMIN --device-cgroup-rule='c 189:* rmw'">
+                    </div>
+                </div>
+
+                <div class="form-row">
                     <div class="form-group checkbox-group">
                         <label>
                             <input type="checkbox" id="container-privileged" name="privileged">
@@ -183,6 +196,8 @@
             const env = formData.get('env');
             const volumes = formData.get('volumes');
             const networks = formData.get('networks');
+            const devices = formData.get('devices');
+            const customCommand = formData.get('customCommand');
             const restart = formData.get('restart');
             const privileged = formData.get('privileged') === 'on';
             const detach = formData.get('detach') === 'on';
@@ -200,6 +215,8 @@
                 if (env) payload.env = env;
                 if (volumes) payload.volumes = volumes;
                 if (networks) payload.networks = networks;
+                if (devices) payload.devices = devices;
+                if (customCommand) payload.customCommand = customCommand;
                 
                 const res = await fetch('/api/containers/create', {
                     method: 'POST',
