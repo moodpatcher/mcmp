@@ -3,7 +3,7 @@
 mcmp is a simple and lightweight tool for managing Docker-based environments and containers. Using an agentless SSH approach, it allows you to easily access and manage multiple nodes.
 ## ⚠️ Work In Progress
 This project is still a work in progress. Some features may be incomplete, and you may encounter bugs. Using it in production environments is highly not recommended.
-## Features: <br/>
+## Features:
 - Web-based interface
 - Network management
 - Volume management
@@ -30,3 +30,6 @@ Then, add hosts (regions) by listing them in **mcmp/config/nodes**, following th
 debian 127.0.0.1 docker id_rsa mcmp
 ```
 NOTE: Podman support hasn’t been implemented yet, but you can still use it by setting an alias. <br/>
+## Planned Features:
+- Templates for deploying VMs and game servers
+- Volume migration between regions
