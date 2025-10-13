@@ -25,7 +25,6 @@ let sidebarOptionsLoggedIn = {
     "📊 Region Stats": "region_stats",
 };
 
-//Automatikus oldalak, amiket létrehoz
 let pages = {
     "404": { login: false },
     "home": { login: false },
@@ -70,7 +69,6 @@ app.use(session({
     })
 }));
 
-//Ez mindig lefut minden oldal megtekintéskor
 app.get('/', (req, res) => {
     if (!req.query.page) {
         res.redirect('/?page=home');
@@ -109,11 +107,9 @@ app.get('/', (req, res) => {
     });
 });
 
-//Ezeknek az oldalaknak nem kell létezniük
 let systemPages = [
 ];
 
-//Létrehozza bizonyos oldalak handlejét
 for (let page in pages) {
     app.get("/" + page, (req, res) => {
         if (!req.get("Referer")) { res.redirect('/?page=home'); return;}
@@ -122,7 +118,6 @@ for (let page in pages) {
     });
 }
 
-//Kijelentkezés
 app.get("/logout", (req, res) => {
     if (!req.get("Referer")) { res.redirect('/?page=news'); return; }
 
@@ -132,17 +127,8 @@ app.get("/logout", (req, res) => {
     res.render("logout.ejs");
 });
 
-//Login script ide POST-ol
 app.post("/loginmanager", (req, res) => {
     if (!req.get("Referer")) { res.redirect('/?page=news'); return;}
-
-    /* fetch("/login", (result) => {
-        if (result.status == "login_success") {
-            req.session.userData = result.userData; req.session.loggedIn = true;
-            res.send(JSON.stringify({ status: "login_success" })); return;
-        }
-        res.send(JSON.stringify(result));
-    }, (e) => { }, "POST", { login: req.body.login, ip: req.session.ipAddress, otp: req.body.otp }); */
 
     if (req.body && req.body.file_base64) {
         try {
@@ -187,23 +173,6 @@ app.post("/loginmanager", (req, res) => {
     res.json({ status: 'error', message: 'Key mismatch!' });
 });
 
-// Execute SSH command via API (requires session login)
-app.post('/ssh/exec', async (req, res) => {
-    if (!req.session || !req.session.loggedIn) { res.status(401).json({ status: 'error', message: 'unauthenticated' }); return; }
-
-    const { host, user, keyName, cmd } = req.body || {};
-    if (!host || !user || !keyName || !cmd) { res.status(400).json({ status: 'error', message: 'missing parameters' }); return; }
-
-    try {
-        const result = await execCommand(host, user, keyName, cmd, { timeout: 20000 });
-        res.json({ status: 'ok', stdout: result.stdout, stderr: result.stderr, code: result.code });
-    } catch (e) {
-        res.status(500).json({ status: 'error', message: e.message || String(e) });
-    }
-});
-
-
-
 function dataParser(r_data) {
     let dataArray = r_data.split('\n');
     
@@ -216,7 +185,6 @@ function dataParser(r_data) {
 
     return data;
 }
-
 
 // SSH helper
 const { execCommand } = require('./utils/ssh');
