@@ -20,6 +20,12 @@
         const data = await res.json();
         if (data.status !== 'ok') { document.getElementById('regions-container').innerText = 'Error: ' + (data.message || JSON.stringify(data)); return; }
 
+        if (Object.keys(data.regions).length == 0) {
+            document.getElementById('regions-container').innerText = 'No regions were found in the config file.';
+            document.getElementById('regions-container').style.marginBottom = "20px";
+            return;
+        }
+
         const container = document.getElementById('regions-container');
         container.innerHTML = '';
         const list = document.createElement('ul');
