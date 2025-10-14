@@ -42,14 +42,15 @@ h2 {
   
 #volumes-table th,
 #volumes-table td {
-    border: 2px solid rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(0, 0, 0, 0.2);
     padding: 10px;
     text-align: center;
 
     background-color: rgba(10, 10, 10, 0.2);
 }
 
-#volumes-table th {
+#volumes-table tr:hover {
+    background-color: rgba(128, 128, 128, 0.1);
 }
 
 #table-first-row td {
@@ -71,13 +72,16 @@ h2 {
     border-radius: 2px;
     border: 2px solid rgba(0, 0, 0, 0.1);
     font-size: 14px;
-    background-color: rgb(240, 72, 72) !important;
+
+    display: inline-block;
 
     cursor: pointer;
+
+    margin-right: 10px;
 }
 
 .vol-name {
-    color: rgba(209, 241, 229, 0.87);
+    color: rgba(255, 255, 255, 0.6);
 }
 
 .vol-size {

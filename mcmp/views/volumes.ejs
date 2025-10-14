@@ -15,7 +15,7 @@
             <table id="volumes-table">
                 <tr id="table-first-row">
                     <td>Volume Name</td>
-                    <td>Action</td>
+                    <td>Actions</td>
                 </tr>
             </table>
         </div>
@@ -44,15 +44,67 @@
                 let delButton = document.createElement("div");
                 delButton.innerHTML = "Delete";
                 delButton.className = "delButton";
+                delButton.style.backgroundColor = "rgb(240, 72, 72)";
+
+
+                let bkpButton = document.createElement("div");
+                bkpButton.innerHTML = "Backup";
+                bkpButton.className = "delButton";
+                bkpButton.style.backgroundColor = "#3b82f6";
+
+                let renButton = document.createElement("div");
+                renButton.innerHTML = "Rename";
+                renButton.className = "delButton";
+                renButton.style.backgroundColor = "#d99414";
 
                 tr.appendChild(tdName);
                 tr.appendChild(tdAction);
+                tdAction.appendChild(renButton);
+                tdAction.appendChild(bkpButton);
                 tdAction.appendChild(delButton);
 
-                tdName.style.width = "94%";
+                renButton.onclick = async () => {
+                    const newName = prompt(`Enter new name for volume \"${volume.name}\":`);
+                    if (!newName) return;
+                    try {
+                        const res = await fetch(`/api/volumes/${volume.name}/rename`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ newName })
+                        });
+                        const data = await res.json();
+                        if (data.status === 'ok') {
+                            alert(`Renamed to: ${data.newName}`);
+                            window.parent.location.reload(true);
+                        } else {
+                            alert('Rename failed: ' + (data.message || 'Unknown error'));
+                        }
+                    } catch (e) {
+                        alert('Network error');
+                    }
+                };
+
+
+                tdName.style.width = "80%";
                 tdAction.style.width = "fit-content";
 
                 volumes_table.appendChild(tr);
+
+                bkpButton.onclick = async () => {
+                    if (!confirm(`Create backup of volume \"${volume.name}\"?`)) { return; }
+                    try {
+                        const res = await fetch(`/api/volumes/${volume.name}/backup`, { method: 'POST' });
+                        const data = await res.json();
+                        if (data.status === 'ok') {
+                            alert(`Backup created: ${data.backup}`);
+                            window.parent.location.reload(true);
+                        } else {
+                            alert('Backup failed: ' + (data.message || 'Unknown error'));
+                        }
+                    } catch (e) {
+                        alert('Network error');
+                    }
+                };
 
                 delButton.onclick = async () => {
                     if (!confirm(`Are you sure you want to delete the volume "${volume.name}"?`)) {
