@@ -99,7 +99,8 @@
                     </div>
                 </div>
 
-                <button type="submit" id="create-btn">Create Container</button>
+                <button class="button" type="submit" id="create-btn">Create Container</button>
+                <div class="button" id="templates-btn" onclick="window.parent.location.href = '/?page=templates'">Container Templates</div>
             </form>
         </div>
 
@@ -167,6 +168,7 @@
                         <td class="container-created">${new Date(container.createdAt).toLocaleDateString()}</td>
                         <td class="container-actions">
                             <button class="btn btn-view" onclick="viewContainer('${container.id}')">View</button>
+                            <button class="btn btn-view" onclick="viewLogs('${container.id}', '${container.names}')">Logs</button>
                             ${isRunning ? 
                                 `<button class="btn btn-stop" onclick="stopContainer('${container.id}')">Stop</button>` :
                                 `<button class="btn btn-start" onclick="startContainer('${container.id}')">Start</button>`
@@ -182,6 +184,42 @@
             } catch (error) {
                 document.getElementById('containers-container').innerHTML = '<div class="error">Network error: ' + error.message + '</div>';
             }
+        }
+
+        // View container logs
+        async function viewLogs(id, name) {
+            try {
+                const res = await fetch(`/api/containers/${id}/logs?tail=500`);
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    const content = `
+                        <div class="container-details">
+                            <h3>Logs: ${name}</h3>
+                            <div class="detail-item full-width">
+                                <pre class="env-vars" style="white-space: pre-wrap;">${escapeHtml(data.logs)}</pre>
+                            </div>
+                        </div>
+                    `;
+                    showModal('Container Logs', content);
+                } else {
+                    showMessage('Error loading logs: ' + (data.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            }
+        }
+
+        function escapeHtml(unsafe) {
+            return (unsafe || '').replace(/[&<>"']/g, function(m) {
+                switch (m) {
+                    case '&': return '&amp;';
+                    case '<': return '&lt;';
+                    case '>': return '&gt;';
+                    case '"': return '&quot;';
+                    case "'": return '&#039;';
+                    default: return m;
+                }
+            });
         }
 
         // Handle form submission
