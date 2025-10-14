@@ -19,7 +19,7 @@ let sidebarOptions = {
 let sidebarOptionsLoggedIn = {
     "🛜 Virtual Networks": "networks",
     "💽 Volumes": "volumes",
-    "💻 Containers / VMs": "containers",
+    "💻 Containers": "containers",
     "🔋 Power Saving": "power_saving",
     "📍 Change Regions": "regions",
     "📊 Region Stats": "region_stats",
@@ -35,6 +35,7 @@ let pages = {
     "power_saving": { login: true },
     "regions": { login: true },
     "region_stats": { login: true },
+    "templates": { login: true },
 };
 
 app.use(express.urlencoded({ extended: true }));
@@ -194,7 +195,7 @@ function getRegions() {
     const storedPath = path.join(__dirname, 'config', 'nodes');
     let cfg_regions = dataParser(fs.readFileSync(storedPath, "utf8"));
 
-    //regions = {};
+    let newRegions = {};
 
     setTimeout(() => {getRegions(); }, 30000);
 
@@ -207,15 +208,17 @@ function getRegions() {
             let cmd = "cat /etc/os-release";
             let options = {};
 
-            regions[regionName] = { ip: hostIP, user: user, key: keyName, online: false }
+            newRegions[regionName] = { ip: hostIP, user: user, key: keyName, online: false }
 
             try {
                 const res = await execCommand(hostIP, user, keyName, cmd, options);
-                regions[regionName].online = true;
+                newRegions[regionName].online = true;
             } catch (e) {
                 //region cant be reached
             }
         }
+
+        regions = newRegions;
     })();
 
 }
@@ -615,6 +618,25 @@ app.get('/api/containers/:id', (req, res) => {
     });
 });
 
+// Containers API: fetch container logs (requires login)
+app.get('/api/containers/:id/logs', (req, res) => {
+    if (!req.session || !req.session.loggedIn) { res.status(401).json({ status: 'error', message: 'unauthenticated' }); return; }
+    if (!req.session.userData.region || req.session.userData.region === 'none') { res.status(400).json({ status: 'error', message: 'no region selected' }); return; }
+
+    const { id } = req.params;
+    const tail = parseInt(req.query.tail, 10);
+    const tailCount = Number.isFinite(tail) && tail > 0 ? tail : 200;
+    if (!id) { res.status(400).json({ status: 'error', message: 'container id required' }); return; }
+
+    const region = req.session.userData.region;
+    if (!regions || !regions[region]) { res.status(400).json({ status: 'error', message: 'invalid region' }); return; }
+
+    const cmd = `docker logs --tail ${tailCount} ${id}`;
+    sshCommand(region, cmd, (result) => {
+        res.json({ status: 'ok', logs: result });
+    });
+});
+
 // Containers API: delete container (requires login)
 app.delete('/api/containers/:id', (req, res) => {
     if (!req.session || !req.session.loggedIn) { res.status(401).json({ status: 'error', message: 'unauthenticated' }); return; }
@@ -931,6 +953,108 @@ app.delete('/api/volumes/:name', (req, res) => {
     });
 });
 
+// Volumes API: backup volume (requires login)
+app.post('/api/volumes/:name/backup', (req, res) => {
+    if (!req.session || !req.session.loggedIn) { res.status(401).json({ status: 'error', message: 'unauthenticated' }); return; }
+    if (!req.session.userData.region || req.session.userData.region === 'none') { res.status(400).json({ status: 'error', message: 'no region selected' }); return; }
+
+    const { name } = req.params;
+    if (!name) { res.status(400).json({ status: 'error', message: 'volume name required' }); return; }
+
+    const region = req.session.userData.region;
+    if (!regions || !regions[region]) { res.status(400).json({ status: 'error', message: 'invalid region' }); return; }
+
+    // Generate backup volume name like bkp-<name>-YYYYMMDD-HHmm
+    const now = new Date();
+    const pad = (n) => n.toString().padStart(2, '0');
+    const y = now.getFullYear();
+    const mo = pad(now.getMonth() + 1);
+    const d = pad(now.getDate());
+    const hh = pad(now.getHours());
+    const mm = pad(now.getMinutes());
+    const backupName = `bkp-${name}-${y}${mo}${d}-${hh}${mm}`;
+
+    // Create destination volume
+    sshCommand(region, `docker volume create ${backupName}`, (createOut) => {
+        // Use a throwaway container to copy contents from source to destination
+        // Use tar stream to preserve permissions and handle busybox/alpine reliably
+        const copyCmd = `docker run --rm -v ${name}:/src:ro -v ${backupName}:/dest alpine sh -c "cd /src && tar cf - . | (cd /dest && tar xpf -)"`;
+        sshCommand(region, copyCmd, (copyOut) => {
+            res.json({ status: 'ok', message: `Backup created as '${backupName}'`, backup: backupName });
+        });
+    });
+});
+
+// Volumes API: rename volume (requires login)
+app.post('/api/volumes/:name/rename', (req, res) => {
+    if (!req.session || !req.session.loggedIn) { res.status(401).json({ status: 'error', message: 'unauthenticated' }); return; }
+    if (!req.session.userData.region || req.session.userData.region === 'none') { res.status(400).json({ status: 'error', message: 'no region selected' }); return; }
+
+    const { name } = req.params;
+    const { newName } = req.body || {};
+    if (!name || !newName) { res.status(400).json({ status: 'error', message: 'volume name and newName required' }); return; }
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/.test(newName)) { res.status(400).json({ status: 'error', message: 'invalid new volume name' }); return; }
+
+    const region = req.session.userData.region;
+    if (!regions || !regions[region]) { res.status(400).json({ status: 'error', message: 'invalid region' }); return; }
+
+    // Create destination volume with new name and copy contents
+    sshCommand(region, `docker volume create ${newName}`, (createOut) => {
+        const copyCmd = `docker run --rm -v ${name}:/src:ro -v ${newName}:/dest alpine sh -c "cd /src && tar cf - . | (cd /dest && tar xpf -)"; docker volume rm -f ${name}`;
+        sshCommand(region, copyCmd, (copyOut) => {
+            res.json({ status: 'ok', message: `Volume renamed to '${newName}'`, newName });
+        });
+    });
+});
+
+let templates = {};
+function readTemplates(done) {
+    const templatesPath = path.join(__dirname, 'config', 'templates');
+
+    fs.readdir(templatesPath, (err, files) => {
+        if (err) {
+            console.error('Error reading templates directory:', err);
+            return;
+        }
+
+        templates = {};
+
+        for (const file of files) {
+            if (file.endsWith('.json')) {
+                const filePath = path.join(templatesPath, file);
+
+                try {
+                    const content = fs.readFileSync(filePath, 'utf8');
+                    let template = JSON.parse(content);
+                    
+                    if (!templates[template.folder]) templates[template.folder] = [];
+                    templates[template.folder].push(template);
+                } catch (e) {
+                    console.error(`Error reading or parsing ${file}:`, e);
+                }
+            }
+        }
+
+        if (done != null) done();
+    });
+
+    //setTimeout(readTemplates, 30000);
+}
+//readTemplates();
+
+// Templates API: list Container Templates (requires login)
+app.get('/api/templates', (req, res) => {
+    readTemplates(() => {
+        if (!req.session || !req.session.loggedIn) { res.status(401).json({ status: 'error', message: 'unauthenticated' }); return; }
+        if (!req.session.userData.region || req.session.userData.region === 'none') { res.status(400).json({ status: 'error', message: 'no region selected' }); return; }
+
+        const region = req.session.userData.region;
+        if (!regions || !regions[region]) { res.status(400).json({ status: 'error', message: 'invalid region' }); return; }
+
+        res.json({ status: 'ok', templates });
+    });
+});
+
 //404 - keep this last so API routes above are reachable
 app.use((req, res, next) => {
     res.redirect('/?page=404');
@@ -938,3 +1062,4 @@ app.use((req, res, next) => {
  
 app.listen(8080, () => {
 });
+
