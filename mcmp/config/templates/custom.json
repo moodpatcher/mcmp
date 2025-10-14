@@ -1,0 +1,11 @@
+{
+    "name": "Custom",
+    "description": "Customized container",
+    "long_description": "Make your own container, with your own commands.",
+    "icon": "https://upload.wikimedia.org/wikipedia/commons/e/ea/Docker_%28container_engine%29_logo_%28cropped%29.png",
+    "folder": "custom",
+    "variables": ["name", "extra_params:", "docker_image:alpine", "cmd:/bin/bash"],
+    "cmds": [
+        "docker run -itd --name ${name} ${extra_params} ${docker_image} ${cmd}"
+    ]
+}

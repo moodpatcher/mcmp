@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCMP</title>
+
+    <link rel="stylesheet" href="templates.css">
+</head>
+<body>
+    <div id="main">
+        <div id="title"><h1>Container Templates</h1></div>
+        <div id="templates-div">
+            <h2>Available Templates</h2>
+            <div id="templates-container">
+                <div id="template-selector" class="templates-menu"></div>
+                <div id="template-details" class="templates-menu">
+                    <center><h3>No template is selected.</h3></center>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <script>
+        let resolvedCommand;
+        function resolveCommand(command, variables) {
+            let resolved = command;
+
+            for (let variable in variables) {
+                resolved = resolved.replaceAll("${" + variable + "}", variables[variable]);
+            }
+
+            resolvedCommand = resolved;
+            return resolved;
+        }
+
+        function onTemplateSelect(template) {
+            let template_details = document.getElementById("template-details");
+            template_details.innerHTML = "";
+
+            let templateNameDiv = document.createElement("div");
+            templateNameDiv.innerHTML = template.name;
+            templateNameDiv.className = "template-selected-name-div";
+
+            let descriptionDiv = document.createElement("div");
+            descriptionDiv.innerHTML = template.long_description;
+            descriptionDiv.className = "template-selected-description-div";
+
+            let commandNameDiv = document.createElement("div");
+            commandNameDiv.innerHTML = "Deploy command:"
+            commandNameDiv.className = "template-selected-deploy-command-div";
+
+            let cmdDiv = document.createElement("div");
+            cmdDiv.innerHTML = template.cmds.join("\n");
+            cmdDiv.className = "template-selected-cmd-div";
+
+            let variablesNameDiv = document.createElement("div");
+            variablesNameDiv.innerHTML = "Variables:";
+            variablesNameDiv.className = "template-selected-deploy-variables-name-div";
+
+            let variablesDiv = document.createElement("div");
+            variablesDiv.className = "template-selected-variables-div";
+
+            let variables = template.variables;
+            let resolved = {};
+
+            for (let variable of variables) {
+                let input = document.createElement("input");
+                let index = variable.indexOf(':');
+                let variableName = variable.split(':')[0];
+                let variableDefault = variable.slice(index + 1);
+                let hasVariableDefault = variable.split(':')[1] != null;
+
+
+                input.onkeyup = () => {
+                    resolved[variableName] = input.value;
+
+                    cmdDiv.innerHTML = resolveCommand(template.cmds.join("\n"), resolved);
+                };
+
+                input.placeholder = variableName;
+
+                if (hasVariableDefault) {
+                    input.value = variableDefault;
+
+                    resolved[variableName] = variableDefault;
+
+                    cmdDiv.innerHTML = resolveCommand(template.cmds.join("\n"), resolved);
+                }
+
+                variablesDiv.appendChild(input);
+            }
+
+            let deployButtonDiv = document.createElement("div");
+            deployButtonDiv.innerHTML = "Deploy";
+            deployButtonDiv.className = "template-selected-deploy-button-div";
+
+            template_details.appendChild(templateNameDiv);
+            template_details.appendChild(descriptionDiv);
+            template_details.appendChild(commandNameDiv);
+            template_details.appendChild(cmdDiv);
+            template_details.appendChild(variablesNameDiv);
+            template_details.appendChild(variablesDiv);
+            template_details.appendChild(deployButtonDiv);
+
+            deployButtonDiv.onclick = async () => {
+                try {
+                    const res = await fetch('/api/ssh-exec', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ command: resolvedCommand })
+                    });
+
+                    const data = await res.json();
+                    window.parent.location.href = '/?page=containers';
+                } catch (error) {
+
+                }
+            }
+        }
+
+        async function loadTemplates() {
+            const res = await fetch('/api/templates');
+            const data = await res.json();
+
+            if (data.templates.length === 0) {
+                document.getElementById("templates-div").innerHTML = '<center>No templates found.</center>';
+                return;
+            }
+
+            let folders = data.templates;
+            let template_selector = document.getElementById("template-selector");
+
+            for (let folder in folders) {
+                let folderNameSpan = document.createElement("span");
+                folderNameSpan.innerHTML = "📁 " + folder;
+                let hr = document.createElement("hr");
+
+                template_selector.appendChild(folderNameSpan);
+                template_selector.appendChild(hr);
+
+                let templates = folders[folder];
+                for (let template of templates) {
+                    let templateDiv = document.createElement("div");
+                    templateDiv.className = "template-div";
+
+                    let templateImage = document.createElement("img");
+                    templateImage.src = template.icon;
+
+                    let templateNameSpan = document.createElement("span");
+                    templateNameSpan.innerHTML = "<b>" + template.name + "</b><br>" + template.description;
+
+                    templateDiv.appendChild(templateImage);
+                    templateDiv.appendChild(templateNameSpan);
+                    template_selector.appendChild(templateDiv);
+
+                    templateDiv.onclick = () => { onTemplateSelect(template); };
+                }
+            }
+        }
+
+        loadTemplates();
+    
+        </script>
+</body>
+</html>

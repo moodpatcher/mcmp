@@ -1,0 +1,11 @@
+{
+    "name": "phpMyAdmin",
+    "description": "phpMyAdmin for MariaDB",
+    "long_description": "This template deploys phpMyAdmin.",
+    "icon": "https://upload.wikimedia.org/wikipedia/commons/4/4f/PhpMyAdmin_logo.svg",
+    "folder": "utils",
+    "variables": ["name", "PMA_HOST", "extra_params:"],
+    "cmds": [
+        "docker run -d --name ${name} -e PMA_HOST=${PMA_HOST} ${extra_params} phpmyadmin:latest"
+    ]
+}

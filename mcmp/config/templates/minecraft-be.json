@@ -1,0 +1,11 @@
+{
+    "name": "Minecraft Bedrock Server",
+    "description": "Minecraft: Bedrock Edition Server",
+    "long_description": "This template deploys a Minecraft: Bedrock Edition server.",
+    "icon": "https://minecraft.wiki/images/Minecraft_social_icon.png?fcb53",
+    "folder": "game",
+    "variables": ["name", "portmap_19132:19132", "server_zip:https://www.minecraft.net/bedrockdedicatedserver/bin-linux/bedrock-server-1.21.113.1.zip", "extra_params:" ],
+    "cmds": [
+        "docker run -d --name ${name} ${extra_params} -p ${portmap_19132}:19132/tcp -p ${portmap_19132}:19132/udp -v ${name}-data:/data -w /data debian:latest bash -c \"apt-get update -y; apt-get install tmux wget unzip libcurl4 -y; wget -O server.zip ${server_zip}; unzip server.zip; tmux new -d -s minecraft ./bedrock_server; tail -f /dev/null; \""
+    ]
+}

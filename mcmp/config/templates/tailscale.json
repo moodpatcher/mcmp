@@ -1,0 +1,12 @@
+{
+    "name": "Tailscale",
+    "description": "Tailscale container",
+    "long_description": "This template deploys Tailscale.",
+    "icon": "https://play-lh.googleusercontent.com/wczDL05-AOb39FcL58L32h6j_TrzzGTXDLlOrOmJ-aNsnoGsT1Gkk2vU4qyTb7tGxRw=w240-h480-rw",
+    "folder": "utils",
+    "variables": ["name", "TS_AUTHKEY", "extra_params:", "cmd:while true; do echo ok; sleep 1; done"],
+    "cmds": [
+        "docker run -itd --name ${name} --hostname docker-${name} -e TS_AUTHKEY=${TS_AUTHKEY} --privileged --device /dev/net/tun -v ${name}-tailscale:/var/lib/tailscale ${extra_params} debian:13 bash -c \"apt-get update -y; apt-get install -y curl tmux; curl -fsSL https://tailscale.com/install.sh | sh; tmux new -d -s tailscale tailscaled; sleep 2; tailscale up --authkey '${TS_AUTHKEY}'; tmux new -d -s cmd '${cmd}'; tail -f /dev/null;\""
+    ]
+}
+

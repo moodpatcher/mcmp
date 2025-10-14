@@ -1,0 +1,10 @@
+{
+    "name": "MariaDB server",
+    "description": "MariaDB server",
+    "long_description": "This template deploys a MariaDB server.",
+    "icon": "https://mariadb.com/wp-content/uploads/2019/11/mariadb-logo-vert_blue-transparent.png",
+    "folder": "utils",
+    "variables": ["name", "MYSQL_ROOT_PASSWORD", "extra_params:"],
+    "cmds": ["docker run -d --name ${name} -e MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD} -v ${name}-data:/var/lib/mysql ${extra_params} mariadb:latest"
+    ]
+}

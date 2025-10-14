@@ -1,0 +1,11 @@
+{
+    "name": "Project Zomboid Server",
+    "description": "Project Zomboid Dedicated Server",
+    "long_description": "You may need to exec into the container to initialize the server, as it will prompt for an administrator password on the first startup.",
+    "icon": "https://projectzomboid.com/blog/content/themes/rw-project-zomboid/assets/images/logo.png",
+    "folder": "game",
+    "variables": ["name", "portmap_16261:16261", "portmap_16262:16262" ],
+    "cmds": [
+        "docker run -d --name ${name} -p ${portmap_16261}:16261/tcp -p ${portmap_16262}:16262/tcp -p ${portmap_16261}:16261/udp -p ${portmap_16262}:16262/udp -v ${name}-data:/root --entrypoint /bin/bash steamcmd/steamcmd -c \"apt update; apt install -y tmux; steamcmd +force_install_dir /root +login anonymous +app_update 380870 validate +quit; tmux new -d -s pzomboid /root/start-server.sh; tail -f /dev/null\""
+    ]
+}

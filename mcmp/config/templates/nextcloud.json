@@ -1,0 +1,11 @@
+{
+    "name": "NextCloud",
+    "description": "NextCloud container",
+    "long_description": "This template deploys a NextCloud.",
+    "icon": "https://upload.wikimedia.org/wikipedia/commons/6/60/Nextcloud_Logo.svg",
+    "folder": "extra",
+    "variables": ["name", "portmap_80:8080", "extra_params:"],
+    "cmds": [
+        "docker run -itd --name ${name} ${extra_params} -p ${portmap_80}:80 -v ${name}-data:/var/www/html --restart always nextcloud:latest"
+    ]
+}

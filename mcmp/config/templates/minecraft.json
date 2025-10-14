@@ -1,0 +1,11 @@
+{
+    "name": "Minecraft Java Server",
+    "description": "Minecraft: Java Edition Server",
+    "long_description": "This template deploys a Minecraft: Java Edition server.",
+    "icon": "https://minecraft.wiki/images/Minecraft_social_icon.png?fcb53",
+    "folder": "game",
+    "variables": ["name", "portmap_25565:25565", "server_jar:https://piston-data.mojang.com/v1/objects/95495a7f485eedd84ce928cef5e223b757d2f764/server.jar", "extra_params:" ],
+    "cmds": [
+        "docker run -d --name ${name} ${extra_params} -p ${portmap_25565}:25565 -v ${name}-data:/data -w /data alpine:latest sh -c \"apk add --no-cache openjdk21-jre tmux curl unzip ncurses && curl -L -o server.jar ${server_jar} && echo 'eula=true' > eula.txt && tmux new -d -s minecraft 'while true; do java -jar server.jar nogui; sleep 1; done' && tail -f /dev/null\""
+    ]
+}
