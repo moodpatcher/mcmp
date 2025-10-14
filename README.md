@@ -30,6 +30,22 @@ Then, add hosts (regions) by listing them in **mcmp/config/nodes**, following th
 debian 127.0.0.1 docker id_rsa mcmp
 ```
 NOTE: Podman support hasn’t been implemented yet, but you can still use it by setting an alias. <br/>
+## Adding templates:
+Templates make it easier to deploy containers. You can create your own templates and deploy them by placing them in the **mcmp/config/templates** directory. Example template:
+```js
+{
+    "name": "Example",
+    "description": "Short description",
+    "long_description": "Long description of the template.",
+    "icon": "https://i.imgur.com/Bv2oKQY.png",
+    "folder": "example",
+    "variables": ["variable_1:World", "variable_2"],
+    "cmds": [
+        "echo Hello ${variable_1}! Value for variable_2 is: ${variable_2}"
+    ]
+}
+```
 ## Planned Features:
-- Templates for deploying VMs and game servers
 - Volume migration between regions
+- Logging
+- User access control
