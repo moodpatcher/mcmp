@@ -83,7 +83,6 @@ app.get('/', (req, res) => {
 
     let currentSidebarOptions = JSON.parse(JSON.stringify(sidebarOptions));
     if (req.session.loggedIn) {
-        console.log(req.session.userData.region)
         if (req.session.userData.region == "none" && req.query.page != "regions") {
             res.redirect('/?page=regions');
             return;
@@ -296,8 +295,6 @@ function shouldRunSchedule(schedule, minute, hour, day, month, weekday) {
 }
 
 function executeSchedule(schedule) {
-    console.log(`Executing power saving schedule: ${schedule.name}`);
-    
     const region = schedule.region;
     if (!regions || !regions[region]) {
         console.error(`Region ${region} not found for schedule ${schedule.name}`);
@@ -308,7 +305,6 @@ function executeSchedule(schedule) {
     schedule.containers.forEach(containerName => {
         const command = `docker ${schedule.action} ${containerName}`;
         sshCommand(region, command, (result) => {
-            console.log(`Executed ${command} for schedule ${schedule.name}: ${result}`);
         });
     });
 }
@@ -317,7 +313,7 @@ function executeSchedule(schedule) {
 setInterval(checkPowerSavingSchedules, 60000); // 60 seconds = 1 minute
 
 function sshCommand(region, command, result) {
-    console.log(`sshCommand: (${region}) | ${command}`);
+    //console.log(`sshCommand: (${region}) | ${command}`);
 
     return (async () => {
         try {
@@ -680,7 +676,6 @@ app.get('/api/power-saving', (req, res) => {
 
 // Power Saving API: create power saving schedule (requires login)
 app.post('/api/power-saving', (req, res) => {
-    console.log('Power saving create request - Session:', req.session ? 'exists' : 'missing', 'Logged in:', req.session?.loggedIn, 'Region:', req.session?.userData?.region);
     if (!req.session || !req.session.loggedIn) { res.status(401).json({ status: 'error', message: 'unauthenticated' }); return; }
     if (!req.session.userData.region || req.session.userData.region === 'none') { res.status(400).json({ status: 'error', message: 'no region selected' }); return; }
 
@@ -746,7 +741,6 @@ app.post('/api/power-saving', (req, res) => {
 
 // Power Saving API: delete power saving schedule (requires login)
 app.delete('/api/power-saving/:id', (req, res) => {
-    console.log('Power saving delete request - Session:', req.session ? 'exists' : 'missing', 'Logged in:', req.session?.loggedIn, 'Region:', req.session?.userData?.region);
     if (!req.session || !req.session.loggedIn) { res.status(401).json({ status: 'error', message: 'unauthenticated' }); return; }
     if (!req.session.userData.region || req.session.userData.region === 'none') { res.status(400).json({ status: 'error', message: 'no region selected' }); return; }
 
