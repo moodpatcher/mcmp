@@ -108,7 +108,6 @@ input[type="text"]:focus, select:focus {
 .button[id="templates-btn"] {
     background: linear-gradient(135deg, #068311 0%, #68b2e4 100%);
     color: white;
-    display: inline-block;
 }
 
 .button {
@@ -119,8 +118,16 @@ input[type="text"]:focus, select:focus {
     font-weight: 600;
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    margin-top: 20px;
     text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 220px;
+    text-align: center;
+    height: 48px;
+    box-sizing: border-box;
+
+    margin-top: 8px;
 }
 
 /* Containers Section */

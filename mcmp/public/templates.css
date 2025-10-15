@@ -115,6 +115,9 @@ h2 {
     font-family: 'Courier New', Courier, monospace;
     padding: 10px;
     background-color: rgba(0, 0, 0, 0.1);
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-x: auto;
 }
 
 .template-selected-deploy-command-div {
@@ -164,4 +167,64 @@ h2 {
     text-decoration: none;
 
     user-select: none;
+}
+
+/* Responsive: Mobile optimizations */
+@media (max-width: 768px) {
+    #templates-div {
+        padding: 12px;
+        max-height: none;
+    }
+
+    #templates-container {
+        flex-direction: column;
+        box-shadow: none;
+        gap: 12px;
+    }
+
+    #template-selector,
+    #template-details {
+        width: 94%;
+        max-height: none;
+    }
+
+    .templates-menu {
+        padding: 12px;
+    }
+
+    .template-div {
+        align-items: center;
+        padding: 8px 10px;
+    }
+
+    .template-div img {
+        width: 32px;
+        margin-bottom: 0;
+    }
+
+    .template-selected-name-div {
+        font-size: 20px;
+    }
+
+    .template-selected-deploy-command-div,
+    .template-selected-deploy-variables-name-div {
+        font-size: 18px;
+    }
+
+    .template-selected-variables-div input {
+        margin: auto; 
+
+        margin-top: 10px; 
+        margin-bottom: 10px; 
+
+        display: block;
+        width: 80%;
+    }
+
+    .template-selected-deploy-button-div {
+        display: block;
+        width: 20%;
+        text-align: center;
+        margin: auto;
+    }
 }

@@ -87,3 +87,10 @@ h2 {
 .vol-size {
     color: rgba(117, 150, 189, 0.8);
 }
+
+@media (max-width: 768px) {
+    .delButton {
+        margin-top: 4px;
+        width: 90%;
+    }
+}
