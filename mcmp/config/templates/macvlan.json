@@ -1,0 +1,11 @@
+{
+    "name": "MacVLAN",
+    "description": "Deploy a MacVLAN network",
+    "long_description": "The MacVLAN network enables containers or virtual machines to have their own unique MAC and IP addresses on the physical network. It's useful for providing direct LAN access, network isolation, and improved performance in containerized environments.",
+    "icon": "https://i.imgur.com/XLpvk2j.png",
+    "folder": "custom",
+    "variables": ["name:macvlan_net", "subnet:192.168.0.0/24", "gateway:192.168.0.1", "interface"],
+    "cmds": [
+        "docker network create -d macvlan --subnet=${subnet} --gateway=${gateway} -o parent=${interface} ${name} "
+    ]
+}
