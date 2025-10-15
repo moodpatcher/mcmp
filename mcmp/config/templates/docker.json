@@ -1,0 +1,11 @@
+{
+    "name": "Docker",
+    "description": "Deploy Docker to this machine",
+    "long_description": "The Docker deployment installs and configures Docker on the target machine, enabling containerized applications to run efficiently. It provides a lightweight, consistent environment for building, shipping, and managing applications.",
+    "icon": "https://upload.wikimedia.org/wikipedia/commons/e/ea/Docker_%28container_engine%29_logo_%28cropped%29.png",
+    "folder": "custom",
+    "variables": [],
+    "cmds": [
+        "curl -fsSL https://get.docker.com | sudo sh"
+    ]
+}
