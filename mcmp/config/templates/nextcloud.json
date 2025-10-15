@@ -1,7 +1,7 @@
 {
     "name": "NextCloud",
     "description": "NextCloud container",
-    "long_description": "This template deploys a NextCloud.",
+    "long_description": "This template deploys NextCloud.",
     "icon": "https://upload.wikimedia.org/wikipedia/commons/6/60/Nextcloud_Logo.svg",
     "folder": "extra",
     "variables": ["name", "portmap_80:8080", "extra_params:"],
