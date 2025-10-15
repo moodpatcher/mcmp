@@ -6,6 +6,6 @@
     "folder": "game",
     "variables": ["name", "key", "portmap_30110:30110", "portmap_30120:30120", "portmap_40120:40120", "extra_params:"],
     "cmds": [
-        "docker run -it --rm --name ${name} -e KEY=${key} ${extra_params} -p ${portmap_30110}:30110/tcp -p ${portmap_30110}:30110/udp -p ${portmap_30120}:30120/tcp -p ${portmap_30120}:30120/udp -p ${portmap_40120}:40120/tcp -v ${name}-data/FXServer:/FXServer moodpatcher/fivem:latest"
+        "docker run -d --rm --name ${name} -e KEY=${key} ${extra_params} -p ${portmap_30110}:30110/tcp -p ${portmap_30110}:30110/udp -p ${portmap_30120}:30120/tcp -p ${portmap_30120}:30120/udp -p ${portmap_40120}:40120/tcp -v ${name}-data/FXServer:/FXServer moodpatcher/fivem:latest"
     ]
 }

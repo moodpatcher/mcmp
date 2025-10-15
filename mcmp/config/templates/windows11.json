@@ -6,6 +6,6 @@
     "folder": "vm",
     "variables": ["name", "network", "ip", "ram_size_gbs", "vcpus", "disk_size_gbs", "extra_params:"],
     "cmds": [
-        "docker run -itd --name ${name} --network ${network} ${extra_params} --ip ${ip} --device=/dev/kvm --device=/dev/net/tun --cap-add NET_ADMIN -v ${name}-data:/storage --stop-timeout 120 -e VERSION=11 -e RAM_SIZE=${ram_size_gbs}G -e CPU_CORES=${vcpus} -e DISK_SIZE=${disk_size_gbs}G --restart always dockurr/windows"
+        "docker run -d --name ${name} --network ${network} ${extra_params} --ip ${ip} --device=/dev/kvm --device=/dev/net/tun --cap-add NET_ADMIN -v ${name}-data:/storage --stop-timeout 120 -e VERSION=11 -e RAM_SIZE=${ram_size_gbs}G -e CPU_CORES=${vcpus} -e DISK_SIZE=${disk_size_gbs}G --restart always dockurr/windows"
     ]
 }
