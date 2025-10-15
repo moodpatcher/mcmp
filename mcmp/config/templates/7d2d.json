@@ -6,6 +6,6 @@
     "folder": "game",
     "variables": ["name", "portmap_26900:26900", "portmap_26901:26901", "portmap_26902:26902", "extra_params:"],
     "cmds": [
-        "docker run -d --name ${name} ${extra_params} -p ${portmap_26900}:26900/tcp -p ${portmap_26900}:26900/udp -p ${portmap_26901}:26901/udp -p ${portmap_26902}:26902/udp -p ${portmap_8080}:8080/tcp -v ${name}-data:/root --entrypoint /bin/bash steamcmd/steamcmd -c \"apt update; apt install -y tmux; steamcmd +force_install_dir /root +login anonymous +app_update 294420 validate +quit; tmux new -d -s 7d2d '/root/startserver.sh -configfile=serverconfig.xml -batchmode -nographics -logfile /steamcmd/7dtd/server.log'; tail -f /dev/null\""
+        "docker run -d --name ${name} ${extra_params} -p ${portmap_26900}:26900/tcp -p ${portmap_26900}:26900/udp -p ${portmap_26901}:26901/udp -p ${portmap_26902}:26902/udp -p ${portmap_8080}:8080/tcp -v ${name}-data:/root --entrypoint /bin/bash steamcmd/steamcmd -c \"apt update; apt install -y tmux; steamcmd +force_install_dir /root +login anonymous +app_update 294420 validate +quit; tmux new -d -s 7d2d '/root/startserver.sh -configfile=serverconfig.xml -batchmode -nographics -logfile /root/7d2d/server.log'; tail -f /dev/null\""
     ]
 }
