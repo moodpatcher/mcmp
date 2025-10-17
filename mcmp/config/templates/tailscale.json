@@ -1,12 +1,12 @@
 {
     "name": "Tailscale",
     "description": "Tailscale container",
-    "long_description": "This template deploys Tailscale.",
+    "long_description": "Tailscale is a zero-config VPN that securely connects your containers and devices. It enables easy, encrypted networking without any manual setup. Add the parameter '--network' and '--ip' to extra_params, to deploy the container to a certain network. Make sure to adjust 'tailscale_extra_params' according to your specific use case.",
     "icon": "https://play-lh.googleusercontent.com/wczDL05-AOb39FcL58L32h6j_TrzzGTXDLlOrOmJ-aNsnoGsT1Gkk2vU4qyTb7tGxRw=w240-h480-rw",
     "folder": "utils",
-    "variables": ["name", "TS_AUTHKEY", "extra_params:", "cmd:while true; do echo ok; sleep 1; done"],
+    "variables": ["name", "TS_AUTHKEY", "tailscale_extra_params:--advertise-routes=0.0.0.0/0 --accept-routes --accept-dns", "extra_params:", "cmd:while true; do echo ok; sleep 1; done"],
     "cmds": [
-        "docker run -d --name ${name} --hostname docker-${name} -e TS_AUTHKEY=${TS_AUTHKEY} --privileged --device /dev/net/tun -v ${name}-tailscale:/var/lib/tailscale ${extra_params} debian:13 bash -c \"apt-get update -y; apt-get install -y curl tmux; curl -fsSL https://tailscale.com/install.sh | sh; tmux new -d -s tailscale tailscaled; sleep 2; tailscale up --authkey '${TS_AUTHKEY}'; tmux new -d -s cmd '${cmd}'; tail -f /dev/null;\""
+        "docker run -d --name ${name} --hostname docker-${name} -e TS_AUTHKEY=${TS_AUTHKEY} --privileged --device /dev/net/tun -v ${name}-tailscale:/var/lib/tailscale ${extra_params} debian:13 bash -c \"apt-get update -y; apt-get install -y curl tmux; curl -fsSL https://tailscale.com/install.sh | sh; tmux new -d -s tailscale tailscaled; sleep 2; tailscale up --authkey '${TS_AUTHKEY}' ${tailscale_extra_params}; tmux new -d -s cmd '${cmd}'; tail -f /dev/null;\""
     ]
 }
 
