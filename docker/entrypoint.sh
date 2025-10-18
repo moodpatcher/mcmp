@@ -1,17 +1,22 @@
 #!/bin/sh
 
-if [ ! -f /mcmp/mcmp/package.json ]; then
-    git clone https://github.com/moodpatcher/mcmp.git /tmp/mcmp;
+find /mcmp/mcmp -mindepth 1 -maxdepth 1 -type d ! -name 'config' -exec rm -rf {} +
 
-    cp -r /tmp/mcmp/* /mcmp;
-    rm -rf /tmp/mcmp;
+git clone https://github.com/moodpatcher/mcmp.git /tmp/mcmp;
 
-    cd /mcmp/mcmp;
+cp -r /tmp/mcmp/* /mcmp;
+rm -rf /tmp/mcmp;
 
-    rm -rf /mcmp/deploy.sh;
+cd /mcmp/mcmp;
+
+rm -rf /mcmp/deploy.sh;
+
+npm install --production;
+
+# Generating root user key
+if [ ! -f /mcmp/mcmp/config/users/root ]; then
     chmod +x /mcmp/key.sh;
 
-    # Generating root user key
     USER="root"
     USER_KEY=$(/mcmp/key.sh)
 
@@ -24,8 +29,6 @@ if [ ! -f /mcmp/mcmp/package.json ]; then
     echo $USER_KEY > /mcmp/mcmp/config/users/$USER
     echo $USER_KEY > /mcmp/$USER.mcmp-key
     echo;
-
-    npm install --production;
 fi
 
 cd /mcmp/mcmp
