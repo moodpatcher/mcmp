@@ -1001,6 +1001,24 @@ app.post('/api/volumes/:name/rename', (req, res) => {
     });
 });
 
+// Volumes API: wipe volume contents (requires login)
+app.post('/api/volumes/:name/wipe', (req, res) => {
+    if (!req.session || !req.session.loggedIn) { res.status(401).json({ status: 'error', message: 'unauthenticated' }); return; }
+    if (!req.session.userData.region || req.session.userData.region === 'none') { res.status(400).json({ status: 'error', message: 'no region selected' }); return; }
+
+    const { name } = req.params;
+    if (!name) { res.status(400).json({ status: 'error', message: 'volume name required' }); return; }
+
+    const region = req.session.userData.region;
+    if (!regions || !regions[region]) { res.status(400).json({ status: 'error', message: 'invalid region' }); return; }
+
+    // Use a temporary container to remove all contents from the volume
+    const wipeCmd = `docker run --rm -v ${name}:/data alpine sh -c "rm -rf /data/* /data/.* 2>/dev/null || true"`;
+    sshCommand(region, wipeCmd, (result) => {
+        res.json({ status: 'ok', message: `Volume '${name}' contents wiped successfully` });
+    });
+});
+
 let templates = {};
 function readTemplates(done) {
     const templatesPath = path.join(__dirname, 'config', 'templates');

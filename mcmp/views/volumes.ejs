@@ -44,7 +44,7 @@
                 let delButton = document.createElement("div");
                 delButton.innerHTML = "Delete";
                 delButton.className = "delButton";
-                delButton.style.backgroundColor = "rgb(240, 72, 72)";
+                delButton.style.backgroundColor = "#dc2626"; 
 
 
                 let bkpButton = document.createElement("div");
@@ -57,10 +57,16 @@
                 renButton.className = "delButton";
                 renButton.style.backgroundColor = "#d99414";
 
+                let wipeButton = document.createElement("div");
+                wipeButton.innerHTML = "Wipe";
+                wipeButton.className = "delButton";
+                wipeButton.style.backgroundColor = "rgb(240, 72, 72)";
+
                 tr.appendChild(tdName);
                 tr.appendChild(tdAction);
                 tdAction.appendChild(renButton);
                 tdAction.appendChild(bkpButton);
+                tdAction.appendChild(wipeButton);
                 tdAction.appendChild(delButton);
 
                 renButton.onclick = async () => {
@@ -102,6 +108,28 @@
                             alert('Backup failed: ' + (data.message || 'Unknown error'));
                         }
                     } catch (e) {
+                        alert('Network error');
+                    }
+                };
+
+                wipeButton.onclick = async () => {
+                    if (!confirm(`Are you sure you want to wipe all contents from volume "${volume.name}"? This action cannot be undone.`)) {
+                        return;
+                    }
+
+                    try {
+                        const res = await fetch(`/api/volumes/${volume.name}/wipe`, {
+                            method: 'POST'
+                        });
+
+                        const data = await res.json();
+                        if (data.status === 'ok') {
+                            alert(`Volume '${volume.name}' contents wiped successfully`);
+                            window.parent.location.reload(true);
+                        } else {
+                            alert('Wipe failed: ' + (data.message || 'Unknown error'));
+                        }
+                    } catch (error) {
                         alert('Network error');
                     }
                 };
