@@ -4,6 +4,18 @@ find /mcmp/mcmp -mindepth 1 -maxdepth 1 -type d ! -name 'config' -exec rm -rf {}
 
 git clone https://github.com/moodpatcher/mcmp.git /tmp/mcmp;
 
+# Deleting config files to prevent existing ones from being overwritten
+files="
+mcmp/config/nodes
+mcmp/config/power-saving-schedules.json
+";
+
+for file in $files; do
+    if [ -f "/mcmp/$file" ]; then
+        rm -rf "/tmp/mcmp/$file"
+    fi
+done
+
 cp -r /tmp/mcmp/* /mcmp;
 rm -rf /tmp/mcmp;
 
