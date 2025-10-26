@@ -59,7 +59,7 @@
         if (loggedIn) {
             let userData = JSON.parse('<%- JSON.stringify(userData) %>');
             document.getElementById("userbar").style.display = "block";
-            document.getElementById("userbar").innerHTML = `👤User: <b> ${userData.username}</b> 📍 Region: ${userData.region}`;
+            document.getElementById("userbar").innerHTML = `👤User: <b> ${userData.username}</b> <a href='/?page=region_stats' target=''>📍 Region: ${userData.region}</a>`;
         }
 
         else {
