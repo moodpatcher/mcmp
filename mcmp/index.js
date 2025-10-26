@@ -20,7 +20,7 @@ let sidebarOptionsLoggedIn = {
     "🛜 Virtual Networks": "networks",
     "💽 Volumes": "volumes",
     "💻 Containers": "containers",
-    "🔋 Power Saving": "power_saving",
+    "🍃 Power Saving": "power_saving",
     "📍 Change Regions": "regions",
     "📊 Region Stats": "region_stats",
 };
