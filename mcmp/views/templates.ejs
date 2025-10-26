@@ -99,9 +99,15 @@
             template_details.appendChild(descriptionDiv);
             template_details.appendChild(commandNameDiv);
             template_details.appendChild(cmdDiv);
-            template_details.appendChild(variablesNameDiv);
-            template_details.appendChild(variablesDiv);
-            template_details.appendChild(deployButtonDiv);
+
+            if (template.variables.length > 0) {
+                template_details.appendChild(variablesNameDiv);
+                template_details.appendChild(variablesDiv);
+            }
+
+            if (template.deployable != false) {
+                template_details.appendChild(deployButtonDiv);
+            }
 
             deployButtonDiv.onclick = async () => {
                 try {
