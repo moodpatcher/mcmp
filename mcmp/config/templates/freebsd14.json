@@ -1,11 +1,11 @@
 {
     "name": "FreeBSD 14 VM",
-    "description": "FreeBSD 14 QEMU/KVM instance",
+    "description": "FreeBSD 14 QEMU/KVM instance (UNIX)",
     "long_description": "This template deploys a QEMU/KVM virtual machine. It's recommended to use Macvlan for networking. You can access a VM's VNC interface by opening its IP address on port 8006.",
     "icon": "https://igwiki.lyci.de/images/0/0a/Freebsd.png",
     "folder": "vm",
     "variables": ["name", "network", "ip", "ram_size_gbs", "vcpus", "disk_size_gbs", "extra_params:"],
     "cmds": [
-        "docker run -d --name ${name} --network ${network} ${extra_params} --ip ${ip} --device=/dev/kvm --device=/dev/net/tun --cap-add NET_ADMIN -v ${name}-data:/storage --stop-timeout 120 -e BOOT=https://download.freebsd.org/releases/amd64/amd64/ISO-IMAGES/14.3/FreeBSD-14.3-RELEASE-amd64-disc1.iso -e RAM_SIZE=${ram_size_gbs}G -e CPU_CORES=${vcpus} -e DISK_SIZE=${disk_size_gbs}G --restart always qemux/qemu"
+        "docker run -d --name ${name} --network ${network} ${extra_params} --ip ${ip} --device=/dev/kvm --device=/dev/net/tun --cap-add NET_ADMIN -v ${name}-data:/storage --stop-timeout 120 -e BOOT=https://download.freebsd.org/releases/amd64/amd64/ISO-IMAGES/14.3/FreeBSD-14.3-RELEASE-amd64-disc1.iso -e RAM_SIZE=${ram_size_gbs}G -e CPU_CORES=${vcpus} -e DISK_SIZE=${disk_size_gbs}G --restart unless-stopped qemux/qemu"
     ]
 }

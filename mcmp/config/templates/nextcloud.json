@@ -6,6 +6,6 @@
     "folder": "extra",
     "variables": ["name", "portmap_80:8080", "extra_params:"],
     "cmds": [
-        "docker run -d --name ${name} ${extra_params} -p ${portmap_80}:80 -v ${name}-data:/var/www/html --restart always nextcloud:latest"
+        "docker run -d --name ${name} ${extra_params} -p ${portmap_80}:80 -v ${name}-data:/var/www/html --restart unless-stopped nextcloud:latest"
     ]
 }

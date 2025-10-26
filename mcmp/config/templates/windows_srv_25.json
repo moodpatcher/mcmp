@@ -1,11 +1,11 @@
 {
     "name": "Windows Server 2025",
-    "description": "Windows Server 2025 QEMU/KVM instance",
+    "description": "Windows Server 2025 QEMU/KVM instance (Windows)",
     "long_description": "This template deploys a QEMU/KVM virtual machine. It's recommended to use Macvlan for networking. You can access a VM's VNC interface by opening its IP address on port 8006.",
     "icon": "https://upload.wikimedia.org/wikipedia/commons/8/87/Windows_logo_-_2021.svg",
     "folder": "vm",
     "variables": ["name", "network", "ip", "ram_size_gbs", "vcpus", "disk_size_gbs", "extra_params:"],
     "cmds": [
-        "docker run -d --name ${name} --network ${network} ${extra_params} --ip ${ip} --device=/dev/kvm --device=/dev/net/tun --cap-add NET_ADMIN -v ${name}-data:/storage --stop-timeout 120 -e VERSION=2025 -e RAM_SIZE=${ram_size_gbs}G -e CPU_CORES=${vcpus} -e DISK_SIZE=${disk_size_gbs}G --restart always dockurr/windows"
+        "docker run -d --name ${name} --network ${network} ${extra_params} --ip ${ip} --device=/dev/kvm --device=/dev/net/tun --cap-add NET_ADMIN -v ${name}-data:/storage --stop-timeout 120 -e VERSION=2025 -e RAM_SIZE=${ram_size_gbs}G -e CPU_CORES=${vcpus} -e DISK_SIZE=${disk_size_gbs}G --restart unless-stopped dockurr/windows"
     ]
 }

@@ -1,8 +1,8 @@
 {
-    "name": "Rocky Linux VM",
-    "description": "Rocky Linux QEMU/KVM instance (Linux)",
+    "name": "Fedora VM",
+    "description": "Fedora QEMU/KVM instance (Linux)",
     "long_description": "This template deploys a QEMU/KVM virtual machine. It's recommended to use Macvlan for networking. You can access a VM's VNC interface by opening its IP address on port 8006.",
-    "icon": "https://upload.wikimedia.org/wikipedia/commons/7/77/Rocky_Linux_logo.svg",
+    "icon": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Fedora_logo.svg/2048px-Fedora_logo.svg.png",
     "folder": "vm",
     "variables": ["name", "network", "ip", "ram_size_gbs", "vcpus", "disk_size_gbs", "extra_params:"],
     "cmds": [
